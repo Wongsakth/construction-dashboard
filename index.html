@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Command Center — Construction HQ</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#f5f6f8;
+  --surface:#ffffff;
+  --surface2:#f9fafb;
+  --border:#e5e7eb;
+  --border2:#d1d5db;
+  --text:#111827;
+  --muted:#6b7280;
+  --hint:#9ca3af;
+  --accent:#2563eb;
+  --accent-light:#eff6ff;
+  --green:#16a34a;
+  --green-light:#f0fdf4;
+  --amber:#d97706;
+  --amber-light:#fffbeb;
+  --red:#dc2626;
+  --red-light:#fef2f2;
+  --purple:#7c3aed;
+  --purple-light:#f5f3ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min-height:100vh;font-size:14px;line-height:1.5}
+.shell{display:grid;grid-template-columns:216px 1fr;min-height:100vh}
+
+/* Sidebar */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.logo{padding:20px;border-bottom:1px solid var(--border)}
+.logo-eyebrow{font-size:9px;font-family:'IBM Plex Mono',monospace;letter-spacing:2px;color:var(--accent);margin-bottom:4px}
+.logo-name{font-size:15px;font-weight:600;color:var(--text)}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.nav{padding:12px 0;flex:1;overflow-y:auto}
+.nav-group{font-size:9px;font-family:'IBM Plex Mono',monospace;letter-spacing:2px;color:var(--hint);padding:12px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 16px;font-size:13px;color:var(--muted);cursor:pointer;transition:all .12s;border-right:2px solid transparent;margin:1px 0}
+.nav-item:hover{color:var(--text);background:var(--surface2)}
+.nav-item.active{color:var(--accent);background:var(--accent-light);border-right:2px solid var(--accent)}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.sidebar-footer{padding:14px 16px;border-top:1px solid var(--border)}
+.online-badge{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted)}
+.online-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 0 2px var(--green-light)}
+
+/* Main */
+.main{display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.breadcrumb{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--hint)}
+.topbar-center{display:flex;align-items:center;gap:8px}
+.page-title{font-size:14px;font-weight:500;color:var(--text)}
+.sep{color:var(--border2)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.live-pill{display:flex;align-items:center;gap:5px;background:var(--green-light);color:var(--green);font-size:10px;font-family:'IBM Plex Mono',monospace;padding:3px 10px;border-radius:20px;border:1px solid #bbf7d0}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+.clock{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--muted)}
+
+.content{padding:20px 24px;flex:1}
+
+/* Tabs */
+.tab-bar{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border)}
+.tab{padding:10px 20px;font-size:13px;font-weight:400;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;font-family:'Sarabun',sans-serif}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom:2px solid var(--accent);font-weight:500}
+
+.tab-pane{display:none}.tab-pane.active{display:block}
+
+/* Metric cards */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.mc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.mc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mc-label{font-size:11px;color:var(--muted)}
+.mc-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.mc-icon.blue{background:var(--accent-light);color:var(--accent)}
+.mc-icon.green{background:var(--green-light);color:var(--green)}
+.mc-icon.amber{background:var(--amber-light);color:var(--amber)}
+.mc-icon.red{background:var(--red-light);color:var(--red)}
+.mc-icon.purple{background:var(--purple-light);color:var(--purple)}
+.mc-value{font-size:24px;font-weight:600;color:var(--text);font-family:'IBM Plex Mono',monospace;margin-bottom:4px}
+.mc-sub{font-size:11px;display:flex;align-items:center;gap:3px}
+.mc-sub.up{color:var(--green)}.mc-sub.down{color:var(--red)}.mc-sub.warn{color:var(--amber)}.mc-sub.neu{color:var(--muted)}
+
+/* Layout grids */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.grid3{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.grid-chart{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-title{font-size:11px;font-weight:500;color:var(--muted);letter-spacing:.3px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace}
+.card-more{font-size:11px;color:var(--accent);cursor:pointer}
+
+/* Progress bars */
+.prog{margin-bottom:10px}
+.prog:last-child{margin-bottom:0}
+.prog-head{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+.prog-name{color:var(--muted)}.prog-pct{color:var(--text);font-weight:500;font-family:'IBM Plex Mono',monospace}
+.prog-track{height:5px;background:var(--bg);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px}
+
+/* Data rows */
+.drow{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.drow:last-child{border-bottom:none}
+.drow-l{color:var(--muted)}.drow-r{color:var(--text);font-weight:500}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-family:'IBM Plex Mono',monospace;font-weight:500;letter-spacing:.3px}
+.badge-green{background:var(--green-light);color:var(--green)}
+.badge-red{background:var(--red-light);color:var(--red)}
+.badge-amber{background:var(--amber-light);color:var(--amber)}
+.badge-blue{background:var(--accent-light);color:var(--accent)}
+.badge-purple{background:var(--purple-light);color:var(--purple)}
+
+/* Decision cards */
+.dec{border-radius:8px;padding:11px 13px;margin-bottom:8px;border-left:3px solid}
+.dec:last-child{margin-bottom:0}
+.dec.hold{background:var(--red-light);border-color:var(--red)}
+.dec.go{background:var(--green-light);border-color:var(--green)}
+.dec.adjust{background:var(--amber-light);border-color:var(--amber)}
+.dec-head{display:flex;align-items:center;gap:7px;margin-bottom:3px}
+.dec-tag{font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 7px;border-radius:3px;font-weight:500;letter-spacing:.5px}
+.dec-tag.hold{background:rgba(220,38,38,.12);color:var(--red)}
+.dec-tag.go{background:rgba(22,163,74,.12);color:var(--green)}
+.dec-tag.adjust{background:rgba(217,119,6,.12);color:var(--amber)}
+.dec-q{font-size:12px;font-weight:500;color:var(--text)}
+.dec-reason{font-size:11px;color:var(--muted);line-height:1.55}
+.dec-time{font-size:10px;color:var(--hint);font-family:'IBM Plex Mono',monospace;margin-top:5px}
+
+/* Audit items */
+.audit-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.audit-row:last-child{border:none}
+.adot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.adot.h{background:var(--red)}.adot.m{background:var(--amber)}.adot.l{background:var(--green)}
+.atext{flex:1;color:var(--muted)}
+
+/* Risk grid */
+.risk-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.risk-cell{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 11px;display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.risk-name{color:var(--muted)}
+
+/* Procurement table */
+.ptable{width:100%;border-collapse:collapse;font-size:12px}
+.ptable th{text-align:left;padding:7px 0;font-size:10px;color:var(--hint);font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;border-bottom:1px solid var(--border);font-weight:500}
+.ptable td{padding:9px 0;border-bottom:1px solid var(--border);color:var(--text)}
+.ptable tr:last-child td{border:none}
+.ptable td.mu{color:var(--muted)}.ptable td.mo{font-family:'IBM Plex Mono',monospace}
+.ptable td.ar{text-align:right}.ptable th.ar{text-align:right}
+
+/* n8n box */
+.n8n-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:14px}
+.n8n-title{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--accent);letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.n8n-title::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.n8n-step{display:flex;gap:10px;margin-bottom:9px;font-size:12px}
+.n8n-step:last-child{margin-bottom:0}
+.n8n-num{width:18px;height:18px;border-radius:4px;background:var(--accent-light);color:var(--accent);font-size:9px;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-weight:500}
+.n8n-text{color:var(--muted);line-height:1.55}
+.n8n-text code{background:var(--surface);border:1px solid var(--border2);color:var(--accent);padding:1px 5px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px}
+
+/* Divider line */
+.divline{height:1px;background:var(--border);margin:14px 0}
+
+/* Chart legend */
+.chart-legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.legend-dot{width:9px;height:9px;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-eyebrow">AI COMMAND</div>
+    <div class="logo-name">Construction HQ</div>
+    <div class="logo-sub">Multi-Agent Dashboard</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-group">DASHBOARD</div>
+    <div class="nav-item active" onclick="setTab('people');setNav(this)"><span class="nav-dot"></span>People & Compliance</div>
+    <div class="nav-item" onclick="setTab('finance');setNav(this)"><span class="nav-dot"></span>Finance</div>
+    <div class="nav-item" onclick="setTab('ops');setNav(this)"><span class="nav-dot"></span>Operations & Risk</div>
+    <div class="nav-group">SYSTEM</div>
+    <div class="nav-item"><span class="nav-dot"></span>Agent Logs</div>
+    <div class="nav-item"><span class="nav-dot"></span>n8n Workflow</div>
+    <div class="nav-item"><span class="nav-dot"></span>Settings</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="online-badge"><span class="online-dot"></span>AI Agents Online · 3/3</div>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-center">
+      <span class="breadcrumb">DASHBOARD /</span>
+      <span class="sep">/</span>
+      <span class="page-title" id="page-title">People & Compliance</span>
+    </div>
+    <div class="topbar-right">
+      <div class="live-pill"><span class="live-dot"></span>LIVE</div>
+      <span class="clock" id="clock">--:--:--</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab active" onclick="setTab('people');setTabBtn(this)">People & Compliance</button>
+      <button class="tab" onclick="setTab('finance');setTabBtn(this)">Finance</button>
+      <button class="tab" onclick="setTab('ops');setTabBtn(this)">Operations & Risk</button>
+    </div>
+
+    <!-- ===== TAB 1: PEOPLE ===== -->
+    <div class="tab-pane active" id="pane-people">
+      <div class="metrics">
+        <div class="mc"><div class="mc-top"><span class="mc-label">Headcount</span><span class="mc-icon blue">◈</span></div><div class="mc-value">248</div><div class="mc-sub up">↑ +12 เดือนนี้</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">Background Check</span><span class="mc-icon green">◈</span></div><div class="mc-value">91%</div><div class="mc-sub warn">⚠ 22 คน ค้างอยู่</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">Compliance Score</span><span class="mc-icon amber">◈</span></div><div class="mc-value">87</div><div class="mc-sub neu">เป้าหมาย 90</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">Legal Cases</span><span class="mc-icon red">◈</span></div><div class="mc-value">3</div><div class="mc-sub down">2 เร่งด่วน</div></div>
+      </div>
+
+      <div class="grid3">
+        <!-- Headcount chart -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Headcount Trend</span></div>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#2563eb"></span>พนักงานรวม</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#16a34a"></span>รับใหม่</span>
+          </div>
+          <div style="position:relative;height:160px"><canvas id="hcChart" role="img" aria-label="Headcount trend chart">แสดงแนวโน้มจำนวนพนักงาน</canvas></div>
+        </div>
+
+        <!-- Recruitment -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Recruitment Status</span></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">วิศวกรโยธา</span><span class="prog-pct">8/10</span></div><div class="prog-track"><div class="prog-fill" style="width:80%;background:#2563eb"></div></div></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">ช่างไฟฟ้า</span><span class="prog-pct">3/5</span></div><div class="prog-track"><div class="prog-fill" style="width:60%;background:#16a34a"></div></div></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">Safety Officer</span><span class="prog-pct">1/3</span></div><div class="prog-track"><div class="prog-fill" style="width:33%;background:#dc2626"></div></div></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">แรงงานทั่วไป</span><span class="prog-pct">18/20</span></div><div class="prog-track"><div class="prog-fill" style="width:90%;background:#2563eb"></div></div></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">Project Manager</span><span class="prog-pct">2/2</span></div><div class="prog-track"><div class="prog-fill" style="width:100%;background:#16a34a"></div></div></div>
+        </div>
+
+        <!-- Audit Findings -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Audit Findings</span><span class="card-more">5 รายการ</span></div>
+          <div class="audit-row"><span class="adot h"></span><span class="atext">Background check ล้าช้า 22 ราย</span><span class="badge badge-red">HIGH</span></div>
+          <div class="audit-row"><span class="adot h"></span><span class="atext">OT เกินกฎหมาย 3 คน</span><span class="badge badge-red">HIGH</span></div>
+          <div class="audit-row"><span class="adot m"></span><span class="atext">เอกสารสัญญาไม่ครบ 7 ราย</span><span class="badge badge-amber">MED</span></div>
+          <div class="audit-row"><span class="adot m"></span><span class="atext">Training log อัปเดตล้าช้า</span><span class="badge badge-amber">MED</span></div>
+          <div class="audit-row"><span class="adot l"></span><span class="atext">ประกันสังคมครบทุกราย</span><span class="badge badge-green">PASS</span></div>
+        </div>
+      </div>
+
+      <!-- CEO Decisions -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">CEO AI — Decision Log</span><span class="card-more">ดูทั้งหมด →</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="dec hold">
+            <div class="dec-head"><span class="dec-tag hold">⛔ HOLD</span></div>
+            <div class="dec-q">รับคน 10 คนไม่ตรวจประวัติ</div>
+            <div class="dec-reason">ความเสี่ยงสูง HR+Audit ไม่เห็นด้วย ให้ใช้พนักงานชั่วคราวก่อน</div>
+            <div class="dec-time">วันนี้ 14:23 · HR + Audit</div>
+          </div>
+          <div class="dec go">
+            <div class="dec-head"><span class="dec-tag go">✓ GO</span></div>
+            <div class="dec-q">ต่อสัญญาพนักงานดีเด่น 5 คน</div>
+            <div class="dec-reason">HR และ Audit เห็นชอบ ความเสี่ยงต่ำ ผลงานผ่านเกณฑ์</div>
+            <div class="dec-time">วันนี้ 11:05 · HR + Audit</div>
+          </div>
+          <div class="dec adjust">
+            <div class="dec-head"><span class="dec-tag adjust">⚡ ADJUST</span></div>
+            <div class="dec-q">OT เกินเกณฑ์กฎหมาย 3 คน</div>
+            <div class="dec-reason">Legal แนะนำปรับ Shift แทนการจ่าย OT เพิ่ม</div>
+            <div class="dec-time">เมื่อวาน 16:47 · HR + Legal</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="n8n-box">
+        <div class="n8n-title">N8N INTEGRATION — GROUP 1: PEOPLE & COMPLIANCE</div>
+        <div class="n8n-step"><div class="n8n-num">1</div><div class="n8n-text">Line Bot → <code>Webhook</code> → Router ส่งไป <code>HR Agent</code> หรือ <code>Audit Agent</code></div></div>
+        <div class="n8n-step"><div class="n8n-num">2</div><div class="n8n-text">HR Agent ดึง Policy จาก <code>Supabase Vector Store</code> (37 ไฟล์) + ข้อมูล employees table</div></div>
+        <div class="n8n-step"><div class="n8n-num">3</div><div class="n8n-text">CEO Agent สรุป Decision → บันทึกลง <code>ceo_decisions</code> → Dashboard ดึงแสดงผล</div></div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 2: FINANCE ===== -->
+    <div class="tab-pane" id="pane-finance">
+      <div class="metrics">
+        <div class="mc"><div class="mc-top"><span class="mc-label">Budget รวม</span><span class="mc-icon blue">◈</span></div><div class="mc-value">48M</div><div class="mc-sub warn">ใช้ไป 67%</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">Cost Overrun</span><span class="mc-icon red">◈</span></div><div class="mc-value">2.1M</div><div class="mc-sub down">↑ เกินแผน 4.3%</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">Cash Flow</span><span class="mc-icon green">◈</span></div><div class="mc-value">6.4M</div><div class="mc-sub up">Healthy</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">Vendor Active</span><span class="mc-icon amber">◈</span></div><div class="mc-value">14</div><div class="mc-sub warn">3 ต้อง Renew</div></div>
+      </div>
+
+      <!-- Main charts row -->
+      <div class="grid-chart">
+        <!-- Cash Flow Bar Chart -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Cash Flow รายเดือน (ล้านบาท)</span></div>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#2563eb"></span>รายรับ</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#e5e7eb;border:1px solid #d1d5db"></span>รายจ่าย</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#16a34a"></span>กำไรสุทธิ</span>
+          </div>
+          <div style="position:relative;height:200px"><canvas id="cashChart" role="img" aria-label="Cash flow bar chart">แสดง Cash Flow รายเดือน</canvas></div>
+        </div>
+
+        <!-- Budget donut -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Budget Usage</span></div>
+          <div style="position:relative;height:160px;margin-bottom:10px"><canvas id="budgetChart" role="img" aria-label="Budget donut chart">แสดงการใช้ Budget</canvas></div>
+          <div class="drow"><span class="drow-l">ใช้ไปแล้ว</span><span class="drow-r" style="color:var(--amber)">฿32.2M</span></div>
+          <div class="drow"><span class="drow-l">คงเหลือ</span><span class="drow-r" style="color:var(--green)">฿15.8M</span></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <!-- Budget per project -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Budget Usage by Project</span></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">โครงการ A — อาคาร 5 ชั้น</span><span class="prog-pct">78%</span></div><div class="prog-track"><div class="prog-fill" style="width:78%;background:#d97706"></div></div></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">โครงการ B — ถนนทางหลวง</span><span class="prog-pct">52%</span></div><div class="prog-track"><div class="prog-fill" style="width:52%;background:#16a34a"></div></div></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">โครงการ C — โกดังสินค้า</span><span class="prog-pct">95%</span></div><div class="prog-track"><div class="prog-fill" style="width:95%;background:#dc2626"></div></div></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">โครงการ D — รีโนเวต</span><span class="prog-pct">31%</span></div><div class="prog-track"><div class="prog-fill" style="width:31%;background:#2563eb"></div></div></div>
+        </div>
+
+        <!-- CEO decisions finance -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">CEO AI — Decision Log</span></div>
+          <div class="dec adjust">
+            <div class="dec-head"><span class="dec-tag adjust">⚡ ADJUST</span></div>
+            <div class="dec-q">โครงการ C เกิน Budget 95%</div>
+            <div class="dec-reason">Cost Control แนะนำตัด Material บางส่วน Finance เห็นด้วย — ทำ Budget Reallocation</div>
+            <div class="dec-time">วันนี้ 13:10 · Cost Control + Finance</div>
+          </div>
+          <div class="dec go">
+            <div class="dec-head"><span class="dec-tag go">✓ GO</span></div>
+            <div class="dec-q">จัดซื้อเหล็กล็อตใหม่ 50 ตัน</div>
+            <div class="dec-reason">ราคาดี Cash Flow รองรับได้ Procurement แนะนำซื้อเพิ่มสต็อก</div>
+            <div class="dec-time">วันนี้ 09:45 · Procurement + Finance</div>
+          </div>
+          <div class="dec hold">
+            <div class="dec-head"><span class="dec-tag hold">⛔ HOLD</span></div>
+            <div class="dec-q">จ้าง Subcontractor เพิ่ม</div>
+            <div class="dec-reason">Finance แจ้ง Cash Flow ตึงในเดือนหน้า ให้รอ AR เข้าก่อน</div>
+            <div class="dec-time">เมื่อวาน 15:22 · Finance + Procurement</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Procurement table -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Procurement — รายการล่าสุด</span><span class="card-more">ดูทั้งหมด →</span></div>
+        <table class="ptable">
+          <tr><th>รายการ</th><th>Vendor</th><th>วันที่</th><th class="ar">มูลค่า (฿)</th><th class="ar">สถานะ</th></tr>
+          <tr><td>เหล็กเส้น 16mm — 50 ตัน</td><td class="mu">Steel Plus Co.</td><td class="mu mo">25/05</td><td class="ar mo">875,000</td><td class="ar"><span class="badge badge-green">APPROVED</span></td></tr>
+          <tr><td>ปูนซีเมนต์ — 200 ถุง</td><td class="mu">SCG</td><td class="mu mo">24/05</td><td class="ar mo">24,000</td><td class="ar"><span class="badge badge-green">APPROVED</span></td></tr>
+          <tr><td>ค่าเช่าเครน — พ.ค.</td><td class="mu">Heavy Lift TH</td><td class="mu mo">23/05</td><td class="ar mo">180,000</td><td class="ar"><span class="badge badge-amber">PENDING</span></td></tr>
+          <tr><td>ท่อ PVC — ชุด C</td><td class="mu">Pipe World</td><td class="mu mo">22/05</td><td class="ar mo">62,000</td><td class="ar"><span class="badge badge-green">APPROVED</span></td></tr>
+          <tr><td>Subcontractor งานไฟฟ้า</td><td class="mu">E-Tech Services</td><td class="mu mo">21/05</td><td class="ar mo">340,000</td><td class="ar"><span class="badge badge-red">HOLD</span></td></tr>
+        </table>
+      </div>
+
+      <div class="n8n-box">
+        <div class="n8n-title">N8N INTEGRATION — GROUP 2: FINANCE</div>
+        <div class="n8n-step"><div class="n8n-num">1</div><div class="n8n-text">Cost Control Agent ดึงข้อมูลจาก <code>Supabase</code> ตาราง budget_items ผ่าน n8n Tool</div></div>
+        <div class="n8n-step"><div class="n8n-num">2</div><div class="n8n-text">Finance Agent เรียก <code>HTTP Request</code> ดึง Cash Flow จากระบบบัญชีหรือ ERP</div></div>
+        <div class="n8n-step"><div class="n8n-num">3</div><div class="n8n-text">Procurement Agent เช็ค PO ค้างใน <code>purchase_orders</code> table → CEO สรุป → Dashboard</div></div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 3: OPS ===== -->
+    <div class="tab-pane" id="pane-ops">
+      <div class="metrics">
+        <div class="mc"><div class="mc-top"><span class="mc-label">Safety Score</span><span class="mc-icon green">◈</span></div><div class="mc-value">94</div><div class="mc-sub up">↑ ดีกว่าเดือนก่อน</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">Incidents MTD</span><span class="mc-icon red">◈</span></div><div class="mc-value">2</div><div class="mc-sub down">1 เร่งด่วน</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">On-Time Delivery</span><span class="mc-icon amber">◈</span></div><div class="mc-value">75%</div><div class="mc-sub warn">1 โครงการล่าช้า</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">High Risk Items</span><span class="mc-icon purple">◈</span></div><div class="mc-value">5</div><div class="mc-sub down">ต้องแก้ด่วน</div></div>
+      </div>
+
+      <div class="grid-chart">
+        <!-- Project progress line chart -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Project Progress Timeline (%)</span></div>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#2563eb"></span>โครงการ A</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#16a34a"></span>โครงการ B</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#d97706"></span>โครงการ C</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#dc2626"></span>โครงการ D</span>
+          </div>
+          <div style="position:relative;height:200px"><canvas id="progressChart" role="img" aria-label="Project progress line chart">แสดงความคืบหน้าโครงการ</canvas></div>
+        </div>
+
+        <!-- Risk heatmap -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Risk Heatmap</span></div>
+          <div class="risk-grid">
+            <div class="risk-cell"><span class="risk-name">แรงงานขาดแคลน</span><span class="badge badge-red">HIGH</span></div>
+            <div class="risk-cell"><span class="risk-name">งบประมาณเกิน</span><span class="badge badge-red">HIGH</span></div>
+            <div class="risk-cell"><span class="risk-name">วัสดุส่งช้า</span><span class="badge badge-amber">MED</span></div>
+            <div class="risk-cell"><span class="risk-name">อุบัติเหตุ</span><span class="badge badge-amber">MED</span></div>
+            <div class="risk-cell"><span class="risk-name">สภาพอากาศ</span><span class="badge badge-green">LOW</span></div>
+            <div class="risk-cell"><span class="risk-name">Subcontractor</span><span class="badge badge-green">LOW</span></div>
+          </div>
+          <div class="divline"></div>
+          <div class="card-header" style="margin-bottom:8px"><span class="card-title">Safety Incidents</span></div>
+          <div class="drow"><span class="drow-l">พนักงานลื่นล้ม — โครงการ A</span><span class="badge badge-red">OPEN</span></div>
+          <div class="drow"><span class="drow-l">เครื่องมือหัก — โครงการ B</span><span class="badge badge-amber">REVIEW</span></div>
+          <div class="drow"><span class="drow-l">ไฟฟ้าลัดวงจร — โครงการ C</span><span class="badge badge-green">CLOSED</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">CEO AI — Decision Log</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="dec hold">
+            <div class="dec-head"><span class="dec-tag hold">⛔ HOLD</span></div>
+            <div class="dec-q">เริ่มงานโครงการ D</div>
+            <div class="dec-reason">Safety Officer ยังไม่ครบ Engineering แนะนำรอก่อน</div>
+            <div class="dec-time">วันนี้ 10:30 · Safety + Engineering</div>
+          </div>
+          <div class="dec go">
+            <div class="dec-head"><span class="dec-tag go">✓ GO</span></div>
+            <div class="dec-q">ต่อเวลาสัญญาเครน 1 เดือน</div>
+            <div class="dec-reason">Risk ต่ำ คุ้มค่ากว่าเช่าใหม่ ใช้งานได้ต่อเนื่อง</div>
+            <div class="dec-time">เมื่อวาน 14:15 · Risk + Engineering</div>
+          </div>
+          <div class="dec adjust">
+            <div class="dec-head"><span class="dec-tag adjust">⚡ ADJUST</span></div>
+            <div class="dec-q">แผนความปลอดภัยโครงการ A</div>
+            <div class="dec-reason">Safety แนะนำเพิ่ม briefing ทุกเช้า และตรวจ PPE รายวัน</div>
+            <div class="dec-time">เมื่อวาน 08:00 · Safety + Risk</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="n8n-box">
+        <div class="n8n-title">N8N INTEGRATION — GROUP 3: OPERATIONS & RISK</div>
+        <div class="n8n-step"><div class="n8n-num">1</div><div class="n8n-text">Safety Agent รับ Incident Report จาก Line → บันทึกลง <code>Supabase</code> ตาราง incidents อัตโนมัติ</div></div>
+        <div class="n8n-step"><div class="n8n-num">2</div><div class="n8n-text">Engineering Agent ดึง Progress % จาก <code>Google Sheets</code> หรือ Asana ผ่าน n8n HTTP Tool</div></div>
+        <div class="n8n-step"><div class="n8n-num">3</div><div class="n8n-text">Risk Agent วิเคราะห์ Risk Score → อัปเดต <code>risk_items</code> table → Dashboard ดึง Realtime</div></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<script>
+function setTab(name){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pane-'+name).classList.add('active');
+  const t={'people':'People & Compliance','finance':'Finance','ops':'Operations & Risk'};
+  document.getElementById('page-title').textContent=t[name];
+}
+function setTabBtn(el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active')}
+function setNav(el){document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));el.classList.add('active')}
+function clock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('th-TH',{hour12:false})}
+setInterval(clock,1000);clock();
+
+const gridColor='rgba(0,0,0,0.05)';
+const tickColor='#9ca3af';
+
+// Headcount trend
+new Chart(document.getElementById('hcChart'),{
+  type:'line',
+  data:{
+    labels:['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.'],
+    datasets:[
+      {label:'พนักงานรวม',data:[210,218,228,236,248],borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,0.08)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#2563eb',borderWidth:2},
+      {label:'รับใหม่',data:[8,12,15,9,12],borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,0.08)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#16a34a',borderWidth:2,borderDash:[4,3]}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10}}},y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10}}}}}
+});
+
+// Cash Flow
+new Chart(document.getElementById('cashChart'),{
+  type:'bar',
+  data:{
+    labels:['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.'],
+    datasets:[
+      {label:'รายรับ',data:[12.4,9.8,14.2,11.6,13.8],backgroundColor:'rgba(37,99,235,0.85)',borderRadius:4,borderSkipped:false},
+      {label:'รายจ่าย',data:[10.1,8.4,11.6,9.2,10.9],backgroundColor:'rgba(229,231,235,1)',borderRadius:4,borderSkipped:false},
+      {label:'กำไรสุทธิ',data:[2.3,1.4,2.6,2.4,2.9],type:'line',borderColor:'#16a34a',backgroundColor:'transparent',tension:.4,pointRadius:4,pointBackgroundColor:'#16a34a',borderWidth:2,yAxisID:'y'}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10}}},y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},callback:v=>v+'M'}}}}
+});
+
+// Budget Donut
+new Chart(document.getElementById('budgetChart'),{
+  type:'doughnut',
+  data:{
+    labels:['ใช้ไปแล้ว','คงเหลือ'],
+    datasets:[{data:[67,33],backgroundColor:['#d97706','#e5e7eb'],borderWidth:0,hoverOffset:4}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:d=>d.label+': '+d.raw+'%'}}}}
+});
+
+// Project Progress
+new Chart(document.getElementById('progressChart'),{
+  type:'line',
+  data:{
+    labels:['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.'],
+    datasets:[
+      {label:'โครงการ A',data:[20,35,48,58,68],borderColor:'#2563eb',backgroundColor:'transparent',tension:.4,pointRadius:3,pointBackgroundColor:'#2563eb',borderWidth:2},
+      {label:'โครงการ B',data:[5,15,28,37,45],borderColor:'#16a34a',backgroundColor:'transparent',tension:.4,pointRadius:3,pointBackgroundColor:'#16a34a',borderWidth:2},
+      {label:'โครงการ C',data:[55,68,78,86,92],borderColor:'#d97706',backgroundColor:'transparent',tension:.4,pointRadius:3,pointBackgroundColor:'#d97706',borderWidth:2},
+      {label:'โครงการ D',data:[0,5,10,16,23],borderColor:'#dc2626',backgroundColor:'transparent',tension:.4,pointRadius:3,pointBackgroundColor:'#dc2626',borderWidth:2,borderDash:[4,3]}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10}}},y:{min:0,max:100,grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},callback:v=>v+'%'}}}}
+});
+</script>
+</body>
+</html>
