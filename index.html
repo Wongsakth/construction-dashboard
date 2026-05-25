@@ -246,21 +246,25 @@ body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min
         <!-- Recruitment -->
         <div class="card">
           <div class="card-header"><span class="card-title">Recruitment Status</span></div>
+          <div id="live-recruitment">
           <div class="prog"><div class="prog-head"><span class="prog-name">วิศวกรโยธา</span><span class="prog-pct">8/10</span></div><div class="prog-track"><div class="prog-fill" style="width:80%;background:#2563eb"></div></div></div>
           <div class="prog"><div class="prog-head"><span class="prog-name">ช่างไฟฟ้า</span><span class="prog-pct">3/5</span></div><div class="prog-track"><div class="prog-fill" style="width:60%;background:#16a34a"></div></div></div>
           <div class="prog"><div class="prog-head"><span class="prog-name">Safety Officer</span><span class="prog-pct">1/3</span></div><div class="prog-track"><div class="prog-fill" style="width:33%;background:#dc2626"></div></div></div>
           <div class="prog"><div class="prog-head"><span class="prog-name">แรงงานทั่วไป</span><span class="prog-pct">18/20</span></div><div class="prog-track"><div class="prog-fill" style="width:90%;background:#2563eb"></div></div></div>
           <div class="prog"><div class="prog-head"><span class="prog-name">Project Manager</span><span class="prog-pct">2/2</span></div><div class="prog-track"><div class="prog-fill" style="width:100%;background:#16a34a"></div></div></div>
+          </div>
         </div>
 
         <!-- Audit Findings -->
         <div class="card">
-          <div class="card-header"><span class="card-title">Audit Findings</span><span class="card-more">5 รายการ</span></div>
+          <div class="card-header"><span class="card-title">Audit Findings</span><span class="card-more" id="live-audit-count">5 รายการ</span></div>
+          <div id="live-audit">
           <div class="audit-row"><span class="adot h"></span><span class="atext">Background check ล้าช้า 22 ราย</span><span class="badge badge-red">HIGH</span></div>
           <div class="audit-row"><span class="adot h"></span><span class="atext">OT เกินกฎหมาย 3 คน</span><span class="badge badge-red">HIGH</span></div>
           <div class="audit-row"><span class="adot m"></span><span class="atext">เอกสารสัญญาไม่ครบ 7 ราย</span><span class="badge badge-amber">MED</span></div>
           <div class="audit-row"><span class="adot m"></span><span class="atext">Training log อัปเดตล้าช้า</span><span class="badge badge-amber">MED</span></div>
           <div class="audit-row"><span class="adot l"></span><span class="atext">ประกันสังคมครบทุกราย</span><span class="badge badge-green">PASS</span></div>
+          </div>
         </div>
       </div>
 
@@ -478,7 +482,7 @@ const gridColor='rgba(0,0,0,0.05)';
 const tickColor='#9ca3af';
 
 // Headcount trend
-new Chart(document.getElementById('hcChart'),{
+window.hcChartInstance = new Chart(document.getElementById('hcChart'),{
   type:'line',
   data:{
     labels:['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.'],
@@ -593,14 +597,17 @@ async function loadAllData(){
   }
   try{
     // โหลดทุกอย่างพร้อมกัน
-    const [people, finance, ops, empActive, empHired, empResigned, empAll] = await Promise.all([
+    const [people, finance, ops, empActive, empHired, empResigned, empAll, jobOpenings, auditData, empTrend] = await Promise.all([
       sbFetch('ceo_decisions','group_type=eq.people&order=created_at.desc&limit=3'),
       sbFetch('ceo_decisions','group_type=eq.finance&order=created_at.desc&limit=3'),
       sbFetch('ceo_decisions','group_type=eq.ops&order=created_at.desc&limit=3'),
       sbFetch('employees','status=eq.active&select=id'),
       sbFetch('employee_movements','movement_type=eq.hired&select=id,created_at'),
       sbFetch('employee_movements','movement_type=eq.resigned&select=id,created_at'),
-      sbFetch('employees','select=id,status')
+      sbFetch('employees','select=id,status'),
+      sbFetch('job_openings','select=position,target,filled,status&order=target.desc'),
+      sbFetch('audit_findings','select=title,severity,status&order=created_at.desc&limit=10'),
+      sbFetch('employee_movements','movement_type=eq.hired&select=created_at&order=created_at.asc')
     ]);
 
     // Decisions
@@ -628,11 +635,66 @@ async function loadAllData(){
       document.getElementById('live-turnover').textContent = turnover+'%';
     }
 
-    // อัปเดต Movement List ถ้ามี element
-    const mvList = document.getElementById('live-movements');
-    if(mvList){
-      const allMv = [...empHired, ...empResigned].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,5);
-      // render ใน loadMovements แยก
+    // === Recruitment Status จาก job_openings ===
+    const recruitEl = document.getElementById('live-recruitment');
+    if(recruitEl && jobOpenings.length){
+      const colors = ['#2563eb','#16a34a','#dc2626','#d97706','#7c3aed'];
+      recruitEl.innerHTML = jobOpenings.map((j,i)=>{
+        const pct = j.target > 0 ? Math.round((j.filled/j.target)*100) : 0;
+        const color = pct >= 90 ? '#16a34a' : pct >= 50 ? '#2563eb' : '#dc2626';
+        return `<div class="prog">
+          <div class="prog-head">
+            <span class="prog-name">${j.position}</span>
+            <span class="prog-pct">${j.filled}/${j.target}</span>
+          </div>
+          <div class="prog-track">
+            <div class="prog-fill" style="width:${pct}%;background:${color}"></div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // === Audit Findings จาก audit_findings ===
+    const auditEl = document.getElementById('live-audit');
+    const auditCount = document.getElementById('live-audit-count');
+    if(auditEl && auditData.length){
+      const sevMap = {high:'h',medium:'m',low:'l',pass:'l'};
+      const badgeMap = {high:'badge-red',medium:'badge-amber',low:'badge-green',pass:'badge-green'};
+      const labelMap = {high:'HIGH',medium:'MED',low:'LOW',pass:'PASS'};
+      auditEl.innerHTML = auditData.map(a=>`
+        <div class="audit-row">
+          <span class="adot ${sevMap[a.severity]||'m'}"></span>
+          <span class="atext">${a.title}</span>
+          <span class="badge ${badgeMap[a.severity]||'badge-amber'}">${labelMap[a.severity]||'MED'}</span>
+        </div>`).join('');
+      if(auditCount) auditCount.textContent = auditData.length+' รายการ';
+    }
+
+    // === Headcount Trend จาก employee_movements ===
+    if(empTrend.length && window.hcChartInstance){
+      const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+      const now = new Date();
+      const last5 = [];
+      for(let i=4;i>=0;i--){
+        const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+        last5.push({label: months[d.getMonth()], year: d.getFullYear(), month: d.getMonth()+1});
+      }
+      const hiredByMonth = last5.map(m =>
+        empTrend.filter(e=>{
+          const d = new Date(e.created_at);
+          return d.getFullYear()===m.year && d.getMonth()+1===m.month;
+        }).length
+      );
+      // คำนวณ cumulative headcount
+      const baseCount = empActive.length - hiredByMonth.reduce((a,b)=>a+b,0);
+      const cumulativeCount = hiredByMonth.reduce((acc,v,i)=>{
+        acc.push((acc[i-1]||baseCount)+v);
+        return acc;
+      },[]);
+      window.hcChartInstance.data.labels = last5.map(m=>m.label);
+      window.hcChartInstance.data.datasets[0].data = cumulativeCount;
+      window.hcChartInstance.data.datasets[1].data = hiredByMonth;
+      window.hcChartInstance.update();
     }
 
     document.getElementById('conn-status').textContent='Live ✓ อัปเดตล่าสุด '+new Date().toLocaleTimeString('th-TH');
@@ -682,6 +744,29 @@ function setMode(mode) {
     renderDecisions(MOCK.people, 'dec-people');
     renderDecisions(MOCK.finance, 'dec-finance');
     renderDecisions(MOCK.ops, 'dec-ops');
+    // Reset recruitment to mock
+    const recruitEl = document.getElementById('live-recruitment');
+    if(recruitEl) recruitEl.innerHTML = `
+      <div class="prog"><div class="prog-head"><span class="prog-name">วิศวกรโยธา</span><span class="prog-pct">8/10</span></div><div class="prog-track"><div class="prog-fill" style="width:80%;background:#2563eb"></div></div></div>
+      <div class="prog"><div class="prog-head"><span class="prog-name">ช่างไฟฟ้า</span><span class="prog-pct">3/5</span></div><div class="prog-track"><div class="prog-fill" style="width:60%;background:#16a34a"></div></div></div>
+      <div class="prog"><div class="prog-head"><span class="prog-name">Safety Officer</span><span class="prog-pct">1/3</span></div><div class="prog-track"><div class="prog-fill" style="width:33%;background:#dc2626"></div></div></div>
+      <div class="prog"><div class="prog-head"><span class="prog-name">แรงงานทั่วไป</span><span class="prog-pct">18/20</span></div><div class="prog-track"><div class="prog-fill" style="width:90%;background:#2563eb"></div></div></div>
+      <div class="prog"><div class="prog-head"><span class="prog-name">Project Manager</span><span class="prog-pct">2/2</span></div><div class="prog-track"><div class="prog-fill" style="width:100%;background:#16a34a"></div></div></div>`;
+    // Reset audit to mock
+    const auditEl = document.getElementById('live-audit');
+    if(auditEl) auditEl.innerHTML = `
+      <div class="audit-row"><span class="adot h"></span><span class="atext">Background check ล้าช้า 22 ราย</span><span class="badge badge-red">HIGH</span></div>
+      <div class="audit-row"><span class="adot h"></span><span class="atext">OT เกินกฎหมาย 3 คน</span><span class="badge badge-red">HIGH</span></div>
+      <div class="audit-row"><span class="adot m"></span><span class="atext">เอกสารสัญญาไม่ครบ 7 ราย</span><span class="badge badge-amber">MED</span></div>
+      <div class="audit-row"><span class="adot m"></span><span class="atext">Training log อัปเดตล้าช้า</span><span class="badge badge-amber">MED</span></div>
+      <div class="audit-row"><span class="adot l"></span><span class="atext">ประกันสังคมครบทุกราย</span><span class="badge badge-green">PASS</span></div>`;
+    // Reset headcount trend to mock
+    if(window.hcChartInstance){
+      window.hcChartInstance.data.labels = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.'];
+      window.hcChartInstance.data.datasets[0].data = [210,218,228,236,248];
+      window.hcChartInstance.data.datasets[1].data = [8,12,15,9,12];
+      window.hcChartInstance.update();
+    }
     // Reset metrics to mock values
     document.getElementById('live-headcount').textContent = '248';
     document.getElementById('live-headcount-sub').textContent = '↑ +12 เดือนนี้';
