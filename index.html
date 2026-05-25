@@ -226,10 +226,10 @@ body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min
     <!-- ===== TAB 1: PEOPLE ===== -->
     <div class="tab-pane active" id="pane-people">
       <div class="metrics">
-        <div class="mc"><div class="mc-top"><span class="mc-label">Headcount</span><span class="mc-icon blue">◈</span></div><div class="mc-value">248</div><div class="mc-sub up">↑ +12 เดือนนี้</div></div>
-        <div class="mc"><div class="mc-top"><span class="mc-label">Background Check</span><span class="mc-icon green">◈</span></div><div class="mc-value">91%</div><div class="mc-sub warn">⚠ 22 คน ค้างอยู่</div></div>
-        <div class="mc"><div class="mc-top"><span class="mc-label">Compliance Score</span><span class="mc-icon amber">◈</span></div><div class="mc-value">87</div><div class="mc-sub neu">เป้าหมาย 90</div></div>
-        <div class="mc"><div class="mc-top"><span class="mc-label">Legal Cases</span><span class="mc-icon red">◈</span></div><div class="mc-value">3</div><div class="mc-sub down">2 เร่งด่วน</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">Headcount</span><span class="mc-icon blue">◈</span></div><div class="mc-value" id="live-headcount">248</div><div class="mc-sub up" id="live-headcount-sub">↑ +12 เดือนนี้</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">รับใหม่เดือนนี้</span><span class="mc-icon green">◈</span></div><div class="mc-value" id="live-hired">5</div><div class="mc-sub up" id="live-hired-sub">เดือนนี้</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">ลาออกเดือนนี้</span><span class="mc-icon amber">◈</span></div><div class="mc-value" id="live-resigned">1</div><div class="mc-sub warn" id="live-resigned-sub">Turnover 0.4%</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">Turnover Rate</span><span class="mc-icon red">◈</span></div><div class="mc-value" id="live-turnover">0.4%</div><div class="mc-sub neu">เป้าหมาย &lt;2%</div></div>
       </div>
 
       <div class="grid3">
@@ -592,20 +592,55 @@ async function loadAllData(){
     return;
   }
   try{
-    const [people,finance,ops]=await Promise.all([
+    // โหลดทุกอย่างพร้อมกัน
+    const [people, finance, ops, empActive, empHired, empResigned, empAll] = await Promise.all([
       sbFetch('ceo_decisions','group_type=eq.people&order=created_at.desc&limit=3'),
       sbFetch('ceo_decisions','group_type=eq.finance&order=created_at.desc&limit=3'),
-      sbFetch('ceo_decisions','group_type=eq.ops&order=created_at.desc&limit=3')
+      sbFetch('ceo_decisions','group_type=eq.ops&order=created_at.desc&limit=3'),
+      sbFetch('employees','status=eq.active&select=id'),
+      sbFetch('employee_movements','movement_type=eq.hired&select=id,created_at'),
+      sbFetch('employee_movements','movement_type=eq.resigned&select=id,created_at'),
+      sbFetch('employees','select=id,status')
     ]);
+
+    // Decisions
     if(people.length) renderDecisions(people,'dec-people');
     if(finance.length) renderDecisions(finance,'dec-finance');
     if(ops.length) renderDecisions(ops,'dec-ops');
+
+    // คำนวณ Headcount
+    const headcount = empActive.length || 0;
+    const now = new Date();
+    const thisMonth = now.getFullYear()+'-'+(String(now.getMonth()+1).padStart(2,'0'));
+
+    const hiredThisMonth = empHired.filter(e => e.created_at && e.created_at.startsWith(thisMonth)).length;
+    const resignedThisMonth = empResigned.filter(e => e.created_at && e.created_at.startsWith(thisMonth)).length;
+    const turnover = headcount > 0 ? ((resignedThisMonth / headcount)*100).toFixed(1) : 0;
+
+    // อัปเดต Metric Cards
+    if(headcount > 0){
+      document.getElementById('live-headcount').textContent = headcount;
+      document.getElementById('live-headcount-sub').textContent = 'พนักงานปัจจุบัน (active)';
+      document.getElementById('live-hired').textContent = hiredThisMonth;
+      document.getElementById('live-hired-sub').textContent = 'รับใหม่เดือนนี้';
+      document.getElementById('live-resigned').textContent = resignedThisMonth;
+      document.getElementById('live-resigned-sub').textContent = 'ลาออกเดือนนี้';
+      document.getElementById('live-turnover').textContent = turnover+'%';
+    }
+
+    // อัปเดต Movement List ถ้ามี element
+    const mvList = document.getElementById('live-movements');
+    if(mvList){
+      const allMv = [...empHired, ...empResigned].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,5);
+      // render ใน loadMovements แยก
+    }
+
     document.getElementById('conn-status').textContent='Live ✓ อัปเดตล่าสุด '+new Date().toLocaleTimeString('th-TH');
     document.getElementById('conn-status').style.color='var(--green)';
   }catch(e){
+    console.error(e);
     document.getElementById('conn-status').textContent='เชื่อมต่อไม่ได้ — เช็ค URL/Key';
     document.getElementById('conn-status').style.color='var(--red)';
-    // fallback to mock
     renderDecisions(MOCK.people,'dec-people');
     renderDecisions(MOCK.finance,'dec-finance');
     renderDecisions(MOCK.ops,'dec-ops');
@@ -647,6 +682,14 @@ function setMode(mode) {
     renderDecisions(MOCK.people, 'dec-people');
     renderDecisions(MOCK.finance, 'dec-finance');
     renderDecisions(MOCK.ops, 'dec-ops');
+    // Reset metrics to mock values
+    document.getElementById('live-headcount').textContent = '248';
+    document.getElementById('live-headcount-sub').textContent = '↑ +12 เดือนนี้';
+    document.getElementById('live-hired').textContent = '12';
+    document.getElementById('live-hired-sub').textContent = 'รับใหม่เดือนนี้';
+    document.getElementById('live-resigned').textContent = '3';
+    document.getElementById('live-resigned-sub').textContent = 'ลาออกเดือนนี้';
+    document.getElementById('live-turnover').textContent = '1.2%';
     document.getElementById('conn-status').textContent = 'Mock Data';
     document.getElementById('conn-status').style.color = 'var(--muted)';
   } else {
