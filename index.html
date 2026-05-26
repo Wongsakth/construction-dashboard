@@ -182,9 +182,10 @@ body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min
   </div>
   <nav class="nav">
     <div class="nav-group">DASHBOARD</div>
-    <div class="nav-item active" onclick="setTab('people');setNav(this)"><span class="nav-dot"></span>People & Compliance</div>
+    <div class="nav-item active" onclick="setTab('people');setNav(this)"><span class="nav-dot"></span>Employee & Compliance</div>
     <div class="nav-item" onclick="setTab('finance');setNav(this)"><span class="nav-dot"></span>Finance</div>
     <div class="nav-item" onclick="setTab('ops');setNav(this)"><span class="nav-dot"></span>Operations & Risk</div>
+    <div class="nav-item" onclick="setTab('executive');setNav(this)"><span class="nav-dot"></span>Executive</div>
     <div class="nav-group">SYSTEM</div>
     <div class="nav-item"><span class="nav-dot"></span>Agent Logs</div>
     <div class="nav-item"><span class="nav-dot"></span>n8n Workflow</div>
@@ -201,7 +202,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min
     <div class="topbar-center">
       <span class="breadcrumb">DASHBOARD /</span>
       <span class="sep">/</span>
-      <span class="page-title" id="page-title">People & Compliance</span>
+      <span class="page-title" id="page-title">Employee & Compliance</span>
     </div>
     <div class="topbar-right">
       <div class="live-pill"><span class="live-dot"></span>LIVE</div>
@@ -218,9 +219,10 @@ body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min
   <div class="content">
     <!-- Tab Bar -->
     <div class="tab-bar">
-      <button class="tab active" onclick="setTab('people');setTabBtn(this)">People & Compliance</button>
+      <button class="tab active" onclick="setTab('people');setTabBtn(this)">Employee & Compliance</button>
       <button class="tab" onclick="setTab('finance');setTabBtn(this)">Finance</button>
       <button class="tab" onclick="setTab('ops');setTabBtn(this)">Operations & Risk</button>
+      <button class="tab" onclick="setTab('executive');setTabBtn(this)">Executive</button>
     </div>
 
     <!-- ===== TAB 1: PEOPLE ===== -->
@@ -462,6 +464,72 @@ body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min
       </div>
     </div>
 
+    <!-- ===== TAB 4: EXECUTIVE ===== -->
+    <div class="tab-pane" id="pane-executive">
+      <div class="metrics">
+        <div class="mc"><div class="mc-top"><span class="mc-label">Market Cap (เป้าหมาย)</span><span class="mc-icon purple">◈</span></div><div class="mc-value">500M</div><div class="mc-sub warn">IPO เป้า Q3/2026</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">D/E Ratio</span><span class="mc-icon red">◈</span></div><div class="mc-value">1.8x</div><div class="mc-sub down">เกินเป้า 2.0x</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">EBITDA</span><span class="mc-icon green">◈</span></div><div class="mc-value">42M</div><div class="mc-sub up">↑ +12% YoY</div></div>
+        <div class="mc"><div class="mc-top"><span class="mc-label">Board Resolution ค้าง</span><span class="mc-icon amber">◈</span></div><div class="mc-value">3</div><div class="mc-sub warn">2 เร่งด่วน</div></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-header"><span class="card-title">IPO Readiness — CFO</span><span class="badge badge-amber">Q3/2026</span></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">Corporate Governance</span><span class="prog-pct">85%</span></div><div class="prog-track"><div class="prog-fill" style="width:85%;background:#2563eb"></div></div></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">Financial Audit (3 ปี)</span><span class="prog-pct">100%</span></div><div class="prog-track"><div class="prog-fill" style="width:100%;background:#16a34a"></div></div></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">Free Float 20%</span><span class="prog-pct">60%</span></div><div class="prog-track"><div class="prog-fill" style="width:60%;background:#d97706"></div></div></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">Independent Director</span><span class="prog-pct">75%</span></div><div class="prog-track"><div class="prog-fill" style="width:75%;background:#2563eb"></div></div></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">Audit Committee</span><span class="prog-pct">100%</span></div><div class="prog-track"><div class="prog-fill" style="width:100%;background:#16a34a"></div></div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">CEO AI — Decision Log</span><span class="card-more">ดูทั้งหมด →</span></div>
+          <div id="dec-executive">
+          <div class="dec go"><div class="dec-head"><span class="dec-tag go">✓ GO</span></div><div class="dec-q">ระดมทุนเพิ่ม 100M ออกหุ้นกู้</div><div class="dec-reason">CFO แนะนำออกหุ้นกู้ดีกว่ากู้ธนาคาร อัตราดอกเบี้ยต่ำกว่า</div><div class="dec-time">วันนี้ 14:23 · CFO + VP</div></div>
+          <div class="dec adjust"><div class="dec-head"><span class="dec-tag adjust">⚡ ADJUST</span></div><div class="dec-q">เตรียม IPO เข้า MAI ปีนี้</div><div class="dec-reason">Free Float ยังไม่ถึง 20% ต้องเตรียมอีก 6 เดือน</div><div class="dec-time">วันนี้ 11:05 · CFO + Board Secretary</div></div>
+          <div class="dec hold"><div class="dec-head"><span class="dec-tag hold">⛔ HOLD</span></div><div class="dec-q">ขยายสาขาภาคเหนือ</div><div class="dec-reason">VP แนะนำรอ D/E Ratio ลดก่อน ความเสี่ยงสูง</div><div class="dec-time">เมื่อวาน 16:47 · VP + CFO</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-header"><span class="card-title">KPI ผู้บริหาร — VP</span></div>
+          <div class="drow"><span class="drow-l">Revenue Growth</span><span class="badge badge-green">18% ✓</span></div>
+          <div class="drow"><span class="drow-l">Net Profit Margin</span><span class="badge badge-amber">8.4% / เป้า 10%</span></div>
+          <div class="drow"><span class="drow-l">ROE</span><span class="badge badge-green">14% ✓</span></div>
+          <div class="drow"><span class="drow-l">P/E Ratio</span><span class="badge badge-blue">12x / ตลาด 15x</span></div>
+          <div class="drow"><span class="drow-l">D/E Ratio</span><span class="badge badge-red">1.8x เกินเป้า</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Board Resolution — Secretary</span><span class="card-more">3 ค้าง</span></div>
+          <div class="audit-row"><span class="adot h"></span><span class="atext">อนุมัติงบ IPO 5M — Deadline 31/05</span><span class="badge badge-red">เร่งด่วน</span></div>
+          <div class="audit-row"><span class="adot m"></span><span class="atext">แต่งตั้ง Independent Director คนที่ 4</span><span class="badge badge-amber">รอดำเนินการ</span></div>
+          <div class="audit-row"><span class="adot m"></span><span class="atext">อนุมัติแผนขยายสาขาภาคเหนือ</span><span class="badge badge-amber">รอดำเนินการ</span></div>
+          <div class="audit-row"><span class="adot l"></span><span class="atext">อนุมัติออกหุ้นกู้ 100M</span><span class="badge badge-green">เสร็จสิ้น</span></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header"><span class="card-title">Action Plan — VP</span></div>
+        <div class="audit-row"><span class="adot l"></span><span class="atext">ลดค่าใช้จ่าย 10% — ทุกฝ่ายส่งแผนแล้ว</span><span class="badge badge-green">เสร็จ</span></div>
+        <div class="audit-row"><span class="adot l"></span><span class="atext">แต่งตั้ง Independent Director ครบ 3/4 คน</span><span class="badge badge-green">เสร็จ</span></div>
+        <div class="audit-row"><span class="adot m"></span><span class="atext">เพิ่ม Free Float — อยู่ระหว่างดำเนินการ</span><span class="badge badge-blue">กำลังทำ</span></div>
+        <div class="audit-row"><span class="adot m"></span><span class="atext">ยื่นเอกสาร ก.ล.ต. — รอเสร็จสิ้น Q2</span><span class="badge badge-amber">รอดำเนินการ</span></div>
+        <div class="audit-row"><span class="adot m"></span><span class="atext">Road Show — วางแผน Q3/2026</span><span class="badge badge-amber">รอดำเนินการ</span></div>
+      </div>
+
+      <div class="n8n-box">
+        <div class="n8n-title">N8N INTEGRATION — GROUP 4: EXECUTIVE</div>
+        <div class="n8n-step"><div class="n8n-num">1</div><div class="n8n-text">CFO Agent รับคำถามด้าน IPO/กลยุทธ์การเงิน → วิเคราะห์และส่ง CEO-A สรุป</div></div>
+        <div class="n8n-step"><div class="n8n-num">2</div><div class="n8n-text">VP Agent แปลง Decision → Action Plan → บันทึกลง <code>Supabase</code> ตาราง action_plans</div></div>
+        <div class="n8n-step"><div class="n8n-num">3</div><div class="n8n-text">Board Secretary บันทึก Resolution ลง <code>Supabase</code> ตาราง board_resolutions → Dashboard แสดง Realtime</div></div>
+      </div>
+
+    </div>
+
   </div>
 </main>
 </div>
@@ -470,7 +538,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min
 function setTab(name){
   document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('pane-'+name).classList.add('active');
-  const t={'people':'People & Compliance','finance':'Finance','ops':'Operations & Risk'};
+  const t={'people':'Employee & Compliance','finance':'Finance','ops':'Operations & Risk','executive':'Executive'};
   document.getElementById('page-title').textContent=t[name];
 }
 function setTabBtn(el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active')}
@@ -597,10 +665,11 @@ async function loadAllData(){
   }
   try{
     // โหลดทุกอย่างพร้อมกัน
-    const [people, finance, ops, empActive, empHired, empResigned, empAll, jobOpenings, auditData, empTrend] = await Promise.all([
+    const [people, finance, ops, executive, empActive, empHired, empResigned, empAll, jobOpenings, auditData, empTrend] = await Promise.all([
       sbFetch('ceo_decisions','group_type=eq.people&order=created_at.desc&limit=3'),
       sbFetch('ceo_decisions','group_type=eq.finance&order=created_at.desc&limit=3'),
       sbFetch('ceo_decisions','group_type=eq.ops&order=created_at.desc&limit=3'),
+      sbFetch('ceo_decisions','group_type=eq.executive&order=created_at.desc&limit=3'),
       sbFetch('employees','status=eq.active&select=id'),
       sbFetch('employee_movements','movement_type=eq.hired&select=id,created_at'),
       sbFetch('employee_movements','movement_type=eq.resigned&select=id,created_at'),
@@ -614,6 +683,7 @@ async function loadAllData(){
     if(people.length) renderDecisions(people,'dec-people');
     if(finance.length) renderDecisions(finance,'dec-finance');
     if(ops.length) renderDecisions(ops,'dec-ops');
+    if(executive.length) renderDecisions(executive,'dec-executive');
 
     // คำนวณ Headcount
     const headcount = empActive.length || 0;
@@ -721,6 +791,11 @@ const MOCK = {
     {question:'จัดซื้อเหล็กล็อตใหม่ 50 ตัน',decision:'GO',reason:'ราคาดี Cash Flow รองรับได้ Procurement แนะนำ',risk_level:'ต่ำ',created_at:new Date().toISOString(),agents:['Finance','Procurement']},
     {question:'จ้าง Subcontractor เพิ่ม',decision:'HOLD',reason:'Finance แจ้ง Cash Flow ตึง ให้รอ AR เข้าก่อน',risk_level:'สูง',created_at:new Date().toISOString(),agents:['Finance','Procurement']}
   ],
+  executive: [
+    {question:'ระดมทุนเพิ่ม 100M ออกหุ้นกู้',decision:'GO',reason:'CFO แนะนำออกหุ้นกู้ดีกว่ากู้ธนาคาร อัตราดอกเบี้ยต่ำกว่า',risk_level:'ต่ำ',created_at:new Date().toISOString(),agents:['CFO','VP']},
+    {question:'เตรียม IPO เข้า MAI ปีนี้',decision:'ADJUST',reason:'Free Float ยังไม่ถึง 20% ต้องเตรียมอีก 6 เดือน',risk_level:'กลาง',created_at:new Date().toISOString(),agents:['CFO','Board Secretary']},
+    {question:'ขยายสาขาภาคเหนือ',decision:'HOLD',reason:'VP แนะนำรอ D/E Ratio ลดก่อน ความเสี่ยงสูง',risk_level:'สูง',created_at:new Date().toISOString(),agents:['VP','CFO']}
+  ],
   ops: [
     {question:'เริ่มงานโครงการ D',decision:'HOLD',reason:'Safety Officer ยังไม่ครบ Engineering แนะนำรอก่อน',risk_level:'สูง',created_at:new Date().toISOString(),agents:['Safety','Engineering']},
     {question:'ต่อเวลาสัญญาเครน 1 เดือน',decision:'GO',reason:'Risk ต่ำ คุ้มค่ากว่าเช่าใหม่ ใช้งานได้ต่อเนื่อง',risk_level:'ต่ำ',created_at:new Date().toISOString(),agents:['Risk','Engineering']},
@@ -775,6 +850,8 @@ function setMode(mode) {
     document.getElementById('live-resigned').textContent = '3';
     document.getElementById('live-resigned-sub').textContent = 'ลาออกเดือนนี้';
     document.getElementById('live-turnover').textContent = '1.2%';
+    // Reset executive to mock
+    renderDecisions(MOCK.executive || [], 'dec-executive');
     document.getElementById('conn-status').textContent = 'Mock Data';
     document.getElementById('conn-status').style.color = 'var(--muted)';
   } else {
