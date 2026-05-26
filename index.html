@@ -383,149 +383,72 @@ body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min
         </table>
       </div>
 
+      <!-- Budget Overview -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header">
+          <span class="card-title">BUDGET OVERVIEW — รายโครงการ</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="project-filter" onchange="filterProject(this.value)" style="font-size:11px;padding:3px 8px;border:0.5px solid var(--color-border-tertiary);border-radius:4px;background:var(--color-background-secondary);color:var(--color-text-primary)">
+              <option value="all">ทุกโครงการ</option>
+            </select>
+            <span class="badge badge-blue" id="budget-updated">Mock Data</span>
+          </div>
+        </div>
+        <div id="live-budget-projects">
+          <div class="prog"><div class="prog-head"><span class="prog-name">โครงการ A — อาคาร 5 ชั้น</span><span class="prog-pct" style="color:#d97706">78% (฿11.7M / 15M)</span></div><div class="prog-track"><div class="prog-fill" style="width:78%;background:#d97706"></div></div></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">โครงการ B — ถนนทางหลวง</span><span class="prog-pct" style="color:#16a34a">52% (฿4.2M / 8M)</span></div><div class="prog-track"><div class="prog-fill" style="width:52%;background:#16a34a"></div></div></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">โครงการ C — โกดังสินค้า</span><span class="prog-pct" style="color:#dc2626">95% (฿4.75M / 5M)</span></div><div class="prog-track"><div class="prog-fill" style="width:95%;background:#dc2626"></div></div></div>
+          <div class="prog"><div class="prog-head"><span class="prog-name">โครงการ D — รีโนเวต</span><span class="prog-pct" style="color:#2563eb">31% (฿0.93M / 3M)</span></div><div class="prog-track"><div class="prog-fill" style="width:31%;background:#2563eb"></div></div></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <!-- Cost Chart -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">COST REPORT — Budget vs Actual (พ.ค.)</span></div>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:2px;background:#2563eb;display:inline-block"></span>แผน</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:2px;background:#dc2626;display:inline-block"></span>จริง</span>
+          </div>
+          <div style="position:relative;height:180px"><canvas id="costChart2" role="img" aria-label="Cost report">Budget vs Actual</canvas></div>
+        </div>
+
+        <!-- Material Plan -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">MATERIAL PLAN — สถานะวัสดุ</span><span class="card-more" id="mat-summary">15 รายการ</span></div>
+          <div id="live-material">
+            <div class="drow"><span class="drow-l">เหล็กเส้น 16mm — โครงการ A</span><span class="badge badge-green">✅ ซื้อครบ</span></div>
+            <div class="drow"><span class="drow-l">ปูนซีเมนต์ — โครงการ A</span><span class="badge badge-amber">🟡 บางส่วน</span></div>
+            <div class="drow"><span class="drow-l">ท่อ PVC — โครงการ A</span><span class="badge badge-amber">🟡 บางส่วน</span></div>
+            <div class="drow"><span class="drow-l">กระเบื้องเซรามิก — โครงการ D</span><span class="badge badge-red">⭕ ยังไม่ซื้อ</span></div>
+            <div class="drow"><span class="drow-l">สีน้ำ Dulux — โครงการ D</span><span class="badge badge-amber">🟡 บางส่วน</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PO Tracking -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header"><span class="card-title">PO TRACKING — ติดตามใบสั่งซื้อ</span><span class="card-more" id="po-count">10 รายการ</span></div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px" id="live-po-table">
+          <tr>
+            <th style="text-align:left;padding:7px 0;font-size:10px;color:var(--color-text-secondary);font-family:monospace;border-bottom:0.5px solid var(--color-border-tertiary)">เลข PO</th>
+            <th style="text-align:left;padding:7px 0;font-size:10px;color:var(--color-text-secondary);font-family:monospace;border-bottom:0.5px solid var(--color-border-tertiary)">โครงการ</th>
+            <th style="text-align:left;padding:7px 0;font-size:10px;color:var(--color-text-secondary);font-family:monospace;border-bottom:0.5px solid var(--color-border-tertiary)">รายการ</th>
+            <th style="text-align:right;padding:7px 0;font-size:10px;color:var(--color-text-secondary);font-family:monospace;border-bottom:0.5px solid var(--color-border-tertiary)">มูลค่า (฿)</th>
+            <th style="text-align:right;padding:7px 0;font-size:10px;color:var(--color-text-secondary);font-family:monospace;border-bottom:0.5px solid var(--color-border-tertiary)">สถานะ</th>
+          </tr>
+          <tr><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-family:monospace;color:var(--color-text-primary)">PO-2026-001</td><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary)">โครงการ A</td><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary)">เหล็กเส้น 16mm</td><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);text-align:right;font-family:monospace">875,000</td><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);text-align:right"><span class="badge badge-green">รับของแล้ว</span></td></tr>
+          <tr><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-family:monospace;color:var(--color-text-primary)">PO-2026-003</td><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary)">โครงการ C</td><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary)">ค่าเช่าเครน</td><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);text-align:right;font-family:monospace">180,000</td><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);text-align:right"><span class="badge badge-blue">อนุมัติแล้ว</span></td></tr>
+          <tr><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-family:monospace;color:var(--color-text-primary)">PO-2026-007</td><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary)">โครงการ A</td><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary)">งานไฟฟ้า</td><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);text-align:right;font-family:monospace">340,000</td><td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);text-align:right"><span class="badge badge-amber">รออนุมัติ</span></td></tr>
+          <tr><td style="padding:7px 0;font-family:monospace;color:var(--color-text-primary)">PO-2026-009</td><td style="padding:7px 0;color:var(--color-text-secondary)">โครงการ D</td><td style="padding:7px 0">สีน้ำ Dulux</td><td style="padding:7px 0;text-align:right;font-family:monospace">24,000</td><td style="padding:7px 0;text-align:right"><span class="badge badge-amber">รออนุมัติ</span></td></tr>
+        </table>
+      </div>
+
       <div class="n8n-box">
         <div class="n8n-title">N8N INTEGRATION — GROUP 2: FINANCE</div>
-        <div class="n8n-step"><div class="n8n-num">1</div><div class="n8n-text">Cost Control Agent ดึงข้อมูลจาก <code>Supabase</code> ตาราง budget_items ผ่าน n8n Tool</div></div>
-        <div class="n8n-step"><div class="n8n-num">2</div><div class="n8n-text">Finance Agent เรียก <code>HTTP Request</code> ดึง Cash Flow จากระบบบัญชีหรือ ERP</div></div>
-        <div class="n8n-step"><div class="n8n-num">3</div><div class="n8n-text">Procurement Agent เช็ค PO ค้างใน <code>purchase_orders</code> table → CEO สรุป → Dashboard</div></div>
-      </div>
-    </div>
-
-    <!-- ===== TAB 3: OPS ===== -->
-    <div class="tab-pane" id="pane-ops">
-      <div class="metrics">
-        <div class="mc"><div class="mc-top"><span class="mc-label">Safety Score</span><span class="mc-icon green">◈</span></div><div class="mc-value">94</div><div class="mc-sub up">↑ ดีกว่าเดือนก่อน</div></div>
-        <div class="mc"><div class="mc-top"><span class="mc-label">Incidents MTD</span><span class="mc-icon red">◈</span></div><div class="mc-value">2</div><div class="mc-sub down">1 เร่งด่วน</div></div>
-        <div class="mc"><div class="mc-top"><span class="mc-label">On-Time Delivery</span><span class="mc-icon amber">◈</span></div><div class="mc-value">75%</div><div class="mc-sub warn">1 โครงการล่าช้า</div></div>
-        <div class="mc"><div class="mc-top"><span class="mc-label">High Risk Items</span><span class="mc-icon purple">◈</span></div><div class="mc-value">5</div><div class="mc-sub down">ต้องแก้ด่วน</div></div>
-      </div>
-
-      <div class="grid-chart">
-        <!-- Project progress line chart -->
-        <div class="card">
-          <div class="card-header"><span class="card-title">Project Progress Timeline (%)</span></div>
-          <div class="chart-legend">
-            <span class="legend-item"><span class="legend-dot" style="background:#2563eb"></span>โครงการ A</span>
-            <span class="legend-item"><span class="legend-dot" style="background:#16a34a"></span>โครงการ B</span>
-            <span class="legend-item"><span class="legend-dot" style="background:#d97706"></span>โครงการ C</span>
-            <span class="legend-item"><span class="legend-dot" style="background:#dc2626"></span>โครงการ D</span>
-          </div>
-          <div style="position:relative;height:200px"><canvas id="progressChart" role="img" aria-label="Project progress line chart">แสดงความคืบหน้าโครงการ</canvas></div>
-        </div>
-
-        <!-- Risk heatmap -->
-        <div class="card">
-          <div class="card-header"><span class="card-title">Risk Heatmap</span></div>
-          <div class="risk-grid">
-            <div class="risk-cell"><span class="risk-name">แรงงานขาดแคลน</span><span class="badge badge-red">HIGH</span></div>
-            <div class="risk-cell"><span class="risk-name">งบประมาณเกิน</span><span class="badge badge-red">HIGH</span></div>
-            <div class="risk-cell"><span class="risk-name">วัสดุส่งช้า</span><span class="badge badge-amber">MED</span></div>
-            <div class="risk-cell"><span class="risk-name">อุบัติเหตุ</span><span class="badge badge-amber">MED</span></div>
-            <div class="risk-cell"><span class="risk-name">สภาพอากาศ</span><span class="badge badge-green">LOW</span></div>
-            <div class="risk-cell"><span class="risk-name">Subcontractor</span><span class="badge badge-green">LOW</span></div>
-          </div>
-          <div class="divline"></div>
-          <div class="card-header" style="margin-bottom:8px"><span class="card-title">Safety Incidents</span></div>
-          <div class="drow"><span class="drow-l">พนักงานลื่นล้ม — โครงการ A</span><span class="badge badge-red">OPEN</span></div>
-          <div class="drow"><span class="drow-l">เครื่องมือหัก — โครงการ B</span><span class="badge badge-amber">REVIEW</span></div>
-          <div class="drow"><span class="drow-l">ไฟฟ้าลัดวงจร — โครงการ C</span><span class="badge badge-green">CLOSED</span></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header"><span class="card-title">CEO AI — Decision Log</span></div>
-        <div id="dec-ops" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-          <div class="dec hold">
-            <div class="dec-head"><span class="dec-tag hold">⛔ HOLD</span></div>
-            <div class="dec-q">เริ่มงานโครงการ D</div>
-            <div class="dec-reason">Safety Officer ยังไม่ครบ Engineering แนะนำรอก่อน</div>
-            <div class="dec-time">วันนี้ 10:30 · Safety + Engineering</div>
-          </div>
-          <div class="dec go">
-            <div class="dec-head"><span class="dec-tag go">✓ GO</span></div>
-            <div class="dec-q">ต่อเวลาสัญญาเครน 1 เดือน</div>
-            <div class="dec-reason">Risk ต่ำ คุ้มค่ากว่าเช่าใหม่ ใช้งานได้ต่อเนื่อง</div>
-            <div class="dec-time">เมื่อวาน 14:15 · Risk + Engineering</div>
-          </div>
-          <div class="dec adjust">
-            <div class="dec-head"><span class="dec-tag adjust">⚡ ADJUST</span></div>
-            <div class="dec-q">แผนความปลอดภัยโครงการ A</div>
-            <div class="dec-reason">Safety แนะนำเพิ่ม briefing ทุกเช้า และตรวจ PPE รายวัน</div>
-            <div class="dec-time">เมื่อวาน 08:00 · Safety + Risk</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="n8n-box">
-        <div class="n8n-title">N8N INTEGRATION — GROUP 3: OPERATIONS & RISK</div>
-        <div class="n8n-step"><div class="n8n-num">1</div><div class="n8n-text">Safety Agent รับ Incident Report จาก Line → บันทึกลง <code>Supabase</code> ตาราง incidents อัตโนมัติ</div></div>
-        <div class="n8n-step"><div class="n8n-num">2</div><div class="n8n-text">Engineering Agent ดึง Progress % จาก <code>Google Sheets</code> หรือ Asana ผ่าน n8n HTTP Tool</div></div>
-        <div class="n8n-step"><div class="n8n-num">3</div><div class="n8n-text">Risk Agent วิเคราะห์ Risk Score → อัปเดต <code>risk_items</code> table → Dashboard ดึง Realtime</div></div>
-      </div>
-    </div>
-
-    <!-- ===== TAB 4: EXECUTIVE ===== -->
-    <div class="tab-pane" id="pane-executive">
-      <div class="metrics">
-        <div class="mc"><div class="mc-top"><span class="mc-label">Market Cap (เป้าหมาย)</span><span class="mc-icon purple">◈</span></div><div class="mc-value">500M</div><div class="mc-sub warn">IPO เป้า Q3/2026</div></div>
-        <div class="mc"><div class="mc-top"><span class="mc-label">D/E Ratio</span><span class="mc-icon red">◈</span></div><div class="mc-value">1.8x</div><div class="mc-sub down">เกินเป้า 2.0x</div></div>
-        <div class="mc"><div class="mc-top"><span class="mc-label">EBITDA</span><span class="mc-icon green">◈</span></div><div class="mc-value">42M</div><div class="mc-sub up">↑ +12% YoY</div></div>
-        <div class="mc"><div class="mc-top"><span class="mc-label">Board Resolution ค้าง</span><span class="mc-icon amber">◈</span></div><div class="mc-value">3</div><div class="mc-sub warn">2 เร่งด่วน</div></div>
-      </div>
-
-      <div class="grid2">
-        <div class="card">
-          <div class="card-header"><span class="card-title">IPO Readiness — CFO</span><span class="badge badge-amber">Q3/2026</span></div>
-          <div class="prog"><div class="prog-head"><span class="prog-name">Corporate Governance</span><span class="prog-pct">85%</span></div><div class="prog-track"><div class="prog-fill" style="width:85%;background:#2563eb"></div></div></div>
-          <div class="prog"><div class="prog-head"><span class="prog-name">Financial Audit (3 ปี)</span><span class="prog-pct">100%</span></div><div class="prog-track"><div class="prog-fill" style="width:100%;background:#16a34a"></div></div></div>
-          <div class="prog"><div class="prog-head"><span class="prog-name">Free Float 20%</span><span class="prog-pct">60%</span></div><div class="prog-track"><div class="prog-fill" style="width:60%;background:#d97706"></div></div></div>
-          <div class="prog"><div class="prog-head"><span class="prog-name">Independent Director</span><span class="prog-pct">75%</span></div><div class="prog-track"><div class="prog-fill" style="width:75%;background:#2563eb"></div></div></div>
-          <div class="prog"><div class="prog-head"><span class="prog-name">Audit Committee</span><span class="prog-pct">100%</span></div><div class="prog-track"><div class="prog-fill" style="width:100%;background:#16a34a"></div></div></div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><span class="card-title">CEO AI — Decision Log</span><span class="card-more">ดูทั้งหมด →</span></div>
-          <div id="dec-executive">
-          <div class="dec go"><div class="dec-head"><span class="dec-tag go">✓ GO</span></div><div class="dec-q">ระดมทุนเพิ่ม 100M ออกหุ้นกู้</div><div class="dec-reason">CFO แนะนำออกหุ้นกู้ดีกว่ากู้ธนาคาร อัตราดอกเบี้ยต่ำกว่า</div><div class="dec-time">วันนี้ 14:23 · CFO + VP</div></div>
-          <div class="dec adjust"><div class="dec-head"><span class="dec-tag adjust">⚡ ADJUST</span></div><div class="dec-q">เตรียม IPO เข้า MAI ปีนี้</div><div class="dec-reason">Free Float ยังไม่ถึง 20% ต้องเตรียมอีก 6 เดือน</div><div class="dec-time">วันนี้ 11:05 · CFO + Board Secretary</div></div>
-          <div class="dec hold"><div class="dec-head"><span class="dec-tag hold">⛔ HOLD</span></div><div class="dec-q">ขยายสาขาภาคเหนือ</div><div class="dec-reason">VP แนะนำรอ D/E Ratio ลดก่อน ความเสี่ยงสูง</div><div class="dec-time">เมื่อวาน 16:47 · VP + CFO</div></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="card">
-          <div class="card-header"><span class="card-title">KPI ผู้บริหาร — VP</span></div>
-          <div class="drow"><span class="drow-l">Revenue Growth</span><span class="badge badge-green">18% ✓</span></div>
-          <div class="drow"><span class="drow-l">Net Profit Margin</span><span class="badge badge-amber">8.4% / เป้า 10%</span></div>
-          <div class="drow"><span class="drow-l">ROE</span><span class="badge badge-green">14% ✓</span></div>
-          <div class="drow"><span class="drow-l">P/E Ratio</span><span class="badge badge-blue">12x / ตลาด 15x</span></div>
-          <div class="drow"><span class="drow-l">D/E Ratio</span><span class="badge badge-red">1.8x เกินเป้า</span></div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><span class="card-title">Board Resolution — Secretary</span><span class="card-more">3 ค้าง</span></div>
-          <div class="audit-row"><span class="adot h"></span><span class="atext">อนุมัติงบ IPO 5M — Deadline 31/05</span><span class="badge badge-red">เร่งด่วน</span></div>
-          <div class="audit-row"><span class="adot m"></span><span class="atext">แต่งตั้ง Independent Director คนที่ 4</span><span class="badge badge-amber">รอดำเนินการ</span></div>
-          <div class="audit-row"><span class="adot m"></span><span class="atext">อนุมัติแผนขยายสาขาภาคเหนือ</span><span class="badge badge-amber">รอดำเนินการ</span></div>
-          <div class="audit-row"><span class="adot l"></span><span class="atext">อนุมัติออกหุ้นกู้ 100M</span><span class="badge badge-green">เสร็จสิ้น</span></div>
-        </div>
-      </div>
-
-      <div class="card" style="margin-bottom:14px">
-        <div class="card-header"><span class="card-title">Action Plan — VP</span></div>
-        <div class="audit-row"><span class="adot l"></span><span class="atext">ลดค่าใช้จ่าย 10% — ทุกฝ่ายส่งแผนแล้ว</span><span class="badge badge-green">เสร็จ</span></div>
-        <div class="audit-row"><span class="adot l"></span><span class="atext">แต่งตั้ง Independent Director ครบ 3/4 คน</span><span class="badge badge-green">เสร็จ</span></div>
-        <div class="audit-row"><span class="adot m"></span><span class="atext">เพิ่ม Free Float — อยู่ระหว่างดำเนินการ</span><span class="badge badge-blue">กำลังทำ</span></div>
-        <div class="audit-row"><span class="adot m"></span><span class="atext">ยื่นเอกสาร ก.ล.ต. — รอเสร็จสิ้น Q2</span><span class="badge badge-amber">รอดำเนินการ</span></div>
-        <div class="audit-row"><span class="adot m"></span><span class="atext">Road Show — วางแผน Q3/2026</span><span class="badge badge-amber">รอดำเนินการ</span></div>
-      </div>
-
-      <div class="n8n-box">
-        <div class="n8n-title">N8N INTEGRATION — GROUP 4: EXECUTIVE</div>
-        <div class="n8n-step"><div class="n8n-num">1</div><div class="n8n-text">CFO Agent รับคำถามด้าน IPO/กลยุทธ์การเงิน → วิเคราะห์และส่ง CEO-A สรุป</div></div>
-        <div class="n8n-step"><div class="n8n-num">2</div><div class="n8n-text">VP Agent แปลง Decision → Action Plan → บันทึกลง <code>Supabase</code> ตาราง action_plans</div></div>
-        <div class="n8n-step"><div class="n8n-num">3</div><div class="n8n-text">Board Secretary บันทึก Resolution ลง <code>Supabase</code> ตาราง board_resolutions → Dashboard แสดง Realtime</div></div>
+        <div class="n8n-step"><div class="n8n-num">1</div><div class="n8n-text">Finance Agent ดึง project_budget จาก <code>Supabase</code> → ตอบคำถามงบ Real-time</div></div>
+        <div class="n8n-step"><div class="n8n-num">2</div><div class="n8n-text">Procurement Agent ดึง po_tracking → เช็ค PO ค้าง รออนุมัติ</div></div>
+        <div class="n8n-step"><div class="n8n-num">3</div><div class="n8n-text">Cost Control ดึง cost_report → เปรียบเทียบ Budget vs Actual รายโครงการ</div></div>
       </div>
 
     </div>
@@ -600,6 +523,30 @@ new Chart(document.getElementById('progressChart'),{
   },
   options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10}}},y:{min:0,max:100,grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},callback:v=>v+'%'}}}}
 });
+
+// Cost Report Chart
+window.costChartInstance = new Chart(document.getElementById('costChart2'),{
+  type:'bar',
+  data:{
+    labels:['โครงการ A\nแรงงาน','โครงการ A\nวัสดุ','โครงการ B\nแรงงาน','โครงการ B\nวัสดุ','โครงการ C\nแรงงาน','โครงการ C\nวัสดุ'],
+    datasets:[
+      {label:'แผน',data:[500000,800000,310000,490000,230000,410000],backgroundColor:'rgba(37,99,235,0.7)',borderRadius:3,borderSkipped:false},
+      {label:'จริง',data:[510000,810000,310000,488000,248000,440000],backgroundColor:'rgba(220,38,38,0.7)',borderRadius:3,borderSkipped:false}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#9ca3af',font:{size:9}}},
+            y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#9ca3af',font:{size:9},callback:v=>v>=1000000?(v/1000000).toFixed(1)+'M':(v/1000).toFixed(0)+'K'}}}}
+});
+
+function filterProject(project){
+  const rows = document.querySelectorAll('#live-po-table tr:not(:first-child)');
+  rows.forEach(row=>{
+    const proj = row.cells[1]?.textContent || '';
+    row.style.display = (project==='all' || proj.includes(project)) ? '' : 'none';
+  });
+}
+
 
 // ===== SUPABASE CONFIG =====
 let SB_URL = localStorage.getItem('sb_url') || '';
@@ -767,6 +714,63 @@ async function loadAllData(){
       window.hcChartInstance.update();
     }
 
+    // === Budget Overview ===
+    const [budgets, materials, poList] = await Promise.all([
+      sbFetch('project_budget','select=project,budget_total,budget_used,budget_pct,status&order=budget_pct.desc'),
+      sbFetch('material_plan','select=project,material_name,qty_planned,qty_purchased&order=created_at.desc&limit=10'),
+      sbFetch('po_tracking','select=po_number,project,item_name,total_value,status&order=order_date.desc&limit=8')
+    ]);
+
+    // Budget Progress Bars
+    if(budgets.length){
+      const proj_el = document.getElementById('live-budget-projects');
+      const filter_el = document.getElementById('project-filter');
+      const projects_list = [...new Set(budgets.map(b=>b.project))];
+      filter_el.innerHTML = '<option value="all">ทุกโครงการ</option>' + projects_list.map(p=>`<option value="${p}">${p}</option>`).join('');
+      proj_el.innerHTML = budgets.map(b=>{
+        const pct = Math.round((b.budget_pct||0)*100);
+        const color = pct>=95?'#dc2626':pct>=80?'#d97706':pct>=60?'#2563eb':'#16a34a';
+        const used = (b.budget_used/1000000).toFixed(1);
+        const total = (b.budget_total/1000000).toFixed(1);
+        return `<div class="prog"><div class="prog-head"><span class="prog-name">${b.project}</span><span class="prog-pct" style="color:${color}">${pct}% (฿${used}M / ${total}M)</span></div><div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${color}"></div></div></div>`;
+      }).join('');
+      document.getElementById('budget-updated').textContent = 'Live ✓';
+    }
+
+    // Material Plan
+    if(materials.length){
+      const mat_el = document.getElementById('live-material');
+      let notBought=0, partial=0, done=0;
+      mat_el.innerHTML = materials.slice(0,8).map(m=>{
+        const pct = m.qty_planned>0 ? m.qty_purchased/m.qty_planned : 0;
+        let badge, label;
+        if(pct>=1){badge='badge-green';label='✅ ซื้อครบ';done++;}
+        else if(pct===0){badge='badge-red';label='⭕ ยังไม่ซื้อ';notBought++;}
+        else{badge='badge-amber';label='🟡 บางส่วน';partial++;}
+        return `<div class="drow"><span class="drow-l">${m.material_name} — ${m.project}</span><span class="badge ${badge}">${label}</span></div>`;
+      }).join('');
+      document.getElementById('mat-summary').textContent = `ซื้อครบ ${done} | บางส่วน ${partial} | ยังไม่ซื้อ ${notBought}`;
+    }
+
+    // PO Tracking
+    if(poList.length){
+      const po_el = document.getElementById('live-po-table');
+      const statusBadge = {
+        'รับของแล้ว':'badge-green','อนุมัติแล้ว':'badge-blue',
+        'รออนุมัติ':'badge-amber','ยกเลิก':'badge-red'
+      };
+      const rows = poList.map(po=>`<tr>
+        <td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-family:monospace;color:var(--color-text-primary)">${po.po_number}</td>
+        <td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary)">${po.project}</td>
+        <td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary)">${po.item_name}</td>
+        <td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);text-align:right;font-family:monospace">${(po.total_value||0).toLocaleString('th-TH')}</td>
+        <td style="padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);text-align:right"><span class="badge ${statusBadge[po.status]||'badge-amber'}">${po.status}</span></td>
+      </tr>`).join('');
+      const header = po_el.querySelector('tr:first-child').outerHTML;
+      po_el.innerHTML = header + rows;
+      document.getElementById('po-count').textContent = poList.length + ' รายการ';
+    }
+
     document.getElementById('conn-status').textContent='Live ✓ อัปเดตล่าสุด '+new Date().toLocaleTimeString('th-TH');
     document.getElementById('conn-status').style.color='var(--green)';
   }catch(e){
@@ -852,6 +856,8 @@ function setMode(mode) {
     document.getElementById('live-turnover').textContent = '1.2%';
     // Reset executive to mock
     renderDecisions(MOCK.executive || [], 'dec-executive');
+    // Reset budget to mock
+    document.getElementById('budget-updated').textContent = 'Mock Data';
     document.getElementById('conn-status').textContent = 'Mock Data';
     document.getElementById('conn-status').style.color = 'var(--muted)';
   } else {
