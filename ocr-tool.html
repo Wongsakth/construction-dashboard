@@ -329,7 +329,7 @@ async function processFiles() {
     try {
       const b64 = await toBase64(FILES[i].file);
       const isPdf = FILES[i].file.type === 'application/pdf';
-      const data = await callClaudeOCR(b64, isPdf, FILES[i].file.name);
+      const data = await callClaudeOCR(b64, isPdf, FILES[i].file.name, FILES[i].file.type);
       RESULTS[i] = { name: FILES[i].file.name, rows: data.rows, raw: data.raw };
       FILES[i].status = 'done';
     } catch(e) {
@@ -348,8 +348,8 @@ async function processFiles() {
   showToast('OCR เสร็จสิ้น! พร้อม Export Excel', 'ok');
 }
 
-async function callClaudeOCR(base64, isPdf, filename) {
-  const mimeType = isPdf ? 'application/pdf' : 'image/jpeg';
+async function callClaudeOCR(base64, isPdf, filename, fileType) {
+  const mimeType = isPdf ? 'application/pdf' : (fileType || 'image/jpeg');
 
   const res = await fetch('/.netlify/functions/ocr', {
     method: 'POST',
