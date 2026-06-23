@@ -438,6 +438,10 @@ async function processFiles() {
   document.getElementById('btnProcess').disabled = true;
   document.getElementById('progressBar').style.display = 'block';
 
+  // Clear old results เมื่อเริ่ม OCR ใหม่
+  Object.keys(RESULTS).forEach(k => delete RESULTS[k]);
+  document.getElementById('resultArea').style.display = 'none';
+
   for (let i = 0; i < FILES.length; i++) {
     if (FILES[i].status === 'done') continue;
     FILES[i].status = 'proc';
@@ -478,8 +482,15 @@ async function processFiles() {
   renderResults();
   document.getElementById('btnExport').disabled = false;
   document.getElementById('resultArea').style.display = 'block';
+
+  // Auto clear file list หลัง OCR สำเร็จ
+  FILES.length = 0;
+  renderFileList();
+  document.getElementById('btnProcess').disabled = true;
+  document.getElementById('formatBar').classList.remove('show');
+
   saveHistory();
-  showToast('OCR เสร็จสิ้น! พร้อม Export Excel', 'ok');
+  showToast('✅ OCR เสร็จสิ้น! พร้อม Export', 'ok');
 }
 
 async function callClaudeOCR(base64, isPdf, filename, fileType) {
@@ -598,17 +609,25 @@ function selectFormat(fmt) {
   document.getElementById('fmtLabel').textContent = FORMAT_LABELS[fmt];
 }
 
-function exportSelected() {
+function getExportName(ext) {
   const now = new Date();
-  const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+  const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
+  const files = Object.values(RESULTS);
+  if (files.length === 1) {
+    const base = files[0].name.replace(/\.[^.]+$/, '').slice(0, 30);
+    return `${base}_${ts}.${ext}`;
+  }
+  return `OCR_${files.length}files_${ts}.${ext}`;
+}
 
+function exportSelected() {
   switch (selectedFormat) {
     case 'xlsx': exportExcel(); break;
-    case 'csv':  exportCSV(ts); break;
-    case 'txt':  exportTXT(ts); break;
-    case 'json': exportJSON(ts); break;
-    case 'md':   exportMD(ts); break;
-    case 'html': exportHTML(ts); break;
+    case 'csv':  exportCSV(); break;
+    case 'txt':  exportTXT(); break;
+    case 'json': exportJSON(); break;
+    case 'md':   exportMD(); break;
+    case 'html': exportHTML(); break;
   }
   document.getElementById('formatBar').classList.remove('show');
 }
@@ -623,7 +642,7 @@ function downloadFile(content, filename, mime) {
 }
 
 // ── CSV ──
-function exportCSV(ts) {
+function exportCSV() {
   const parts = [];
   Object.values(RESULTS).forEach(r => {
     const rows = r.rows || [];
@@ -633,12 +652,13 @@ function exportCSV(ts) {
     const body = rows.map(row => cols.map(c => `"${String(row[c] ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
     parts.push(`# ${r.name}\n${header}\n${body}`);
   });
-  downloadFile('\uFEFF' + parts.join('\n\n'), `OCR_${ts}.csv`, 'text/csv;charset=utf-8');
-  showToast('✅ Export CSV สำเร็จ', 'ok');
+  const fname = getExportName('csv');
+  downloadFile('\uFEFF' + parts.join('\n\n'), fname, 'text/csv;charset=utf-8');
+  showToast(`✅ Export "${fname}" สำเร็จ`, 'ok');
 }
 
 // ── TXT ──
-function exportTXT(ts) {
+function exportTXT() {
   const DIVIDER = '═'.repeat(60);
   const PAGE_DIV = '─'.repeat(40);
   let out = `OCR Export — ${new Date().toLocaleString('th-TH')}\n${DIVIDER}\n\n`;
@@ -658,23 +678,25 @@ function exportTXT(ts) {
     out += `\n${DIVIDER}\n\n`;
   });
 
-  downloadFile(out, `OCR_${ts}.txt`, 'text/plain;charset=utf-8');
-  showToast('✅ Export TXT สำเร็จ', 'ok');
+  const fname = getExportName('txt');
+  downloadFile(out, fname, 'text/plain;charset=utf-8');
+  showToast(`✅ Export "${fname}" สำเร็จ`, 'ok');
 }
 
 // ── JSON ──
-function exportJSON(ts) {
+function exportJSON() {
   const output = Object.values(RESULTS).map(r => ({
     file: r.name,
     pages: r.sheets ? r.sheets.length : 1,
     sheets: r.sheets || [{ label: 'หน้า 1', rows: r.rows, raw: r.raw }],
   }));
-  downloadFile(JSON.stringify(output, null, 2), `OCR_${ts}.json`, 'application/json');
-  showToast('✅ Export JSON สำเร็จ', 'ok');
+  const fname = getExportName('json');
+  downloadFile(JSON.stringify(output, null, 2), fname, 'application/json');
+  showToast(`✅ Export "${fname}" สำเร็จ`, 'ok');
 }
 
 // ── Markdown ──
-function exportMD(ts) {
+function exportMD() {
   let out = `# OCR Export\n_${new Date().toLocaleString('th-TH')}_\n\n`;
 
   Object.values(RESULTS).forEach(r => {
@@ -696,12 +718,13 @@ function exportMD(ts) {
     });
   });
 
-  downloadFile(out, `OCR_${ts}.md`, 'text/markdown;charset=utf-8');
-  showToast('✅ Export Markdown สำเร็จ', 'ok');
+  const fname = getExportName('md');
+  downloadFile(out, fname, 'text/markdown;charset=utf-8');
+  showToast(`✅ Export "${fname}" สำเร็จ`, 'ok');
 }
 
 // ── HTML ──
-function exportHTML(ts) {
+function exportHTML() {
   let tables = '';
   Object.values(RESULTS).forEach(r => {
     const sheets = r.sheets || [{ label: 'ข้อมูล', rows: r.rows }];
@@ -714,8 +737,9 @@ function exportHTML(ts) {
     });
   });
 
+  const fname = getExportName('html');
   const html = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
-<title>OCR Export ${ts}</title>
+<title>${fname}</title>
 <style>body{font-family:sans-serif;padding:24px;background:#f5f5f5}h2{margin-top:28px;color:#1a1d27}
 table{border-collapse:collapse;width:100%;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);margin-bottom:24px}
 th{background:#4f8ef7;color:#fff;padding:10px 14px;text-align:left;font-size:13px}
@@ -723,8 +747,8 @@ td{padding:8px 14px;border-bottom:1px solid #eee;font-size:13px}
 tr:last-child td{border-bottom:none}tr:hover td{background:#f0f5ff}</style></head>
 <body><h1>📊 OCR Export</h1><p style="color:#888">${new Date().toLocaleString('th-TH')}</p>${tables}</body></html>`;
 
-  downloadFile(html, `OCR_${ts}.html`, 'text/html;charset=utf-8');
-  showToast('✅ Export HTML สำเร็จ', 'ok');
+  downloadFile(html, fname, 'text/html;charset=utf-8');
+  showToast(`✅ Export "${fname}" สำเร็จ`, 'ok');
 }
 
 // ── Excel (existing) ──
@@ -765,10 +789,9 @@ function exportExcel() {
     }
   });
 
-  const now = new Date();
-  const fname = `OCR_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.xlsx`;
+  const fname = getExportName('xlsx');
   window.XLSX.writeFile(wb, fname);
-  showToast(`Export "${fname}" สำเร็จ`, 'ok');
+  showToast(`✅ Export "${fname}" สำเร็จ`, 'ok');
 }
 
 // ── History ──
