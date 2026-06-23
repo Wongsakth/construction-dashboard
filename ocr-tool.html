@@ -414,10 +414,17 @@ function renderTabContent() {
 // ── Export Excel ──
 function exportExcel() {
   const wb = window.XLSX.utils.book_new();
+  const usedNames = {};
   Object.values(RESULTS).forEach(r => {
     if (!r.rows || r.rows.length === 0) return;
     const ws = window.XLSX.utils.json_to_sheet(r.rows);
-    const sheetName = r.name.replace(/\.[^.]+$/, '').slice(0, 31);
+    let sheetName = r.name.replace(/\.[^.]+$/, '').slice(0, 28);
+    if (usedNames[sheetName]) {
+      usedNames[sheetName]++;
+      sheetName = (sheetName.slice(0, 25) + '_' + usedNames[sheetName]).slice(0, 31);
+    } else {
+      usedNames[sheetName] = 1;
+    }
     window.XLSX.utils.book_append_sheet(wb, ws, sheetName);
   });
 
