@@ -210,7 +210,7 @@
           <input type="file" id="fileInput" multiple accept="image/*,.pdf">
           <div class="dropzone-icon">📂</div>
           <div class="dropzone-text">คลิกเพื่อเลือกไฟล์ หรือลากมาวางที่นี่</div>
-          <div class="dropzone-sub">รองรับ JPG, PNG, PDF • สูงสุด 5 ไฟล์ต่อครั้ง</div>
+          <div class="dropzone-sub">รองรับ JPG, PNG (สูงสุด 5 MB) • PDF (สูงสุด 10 MB) • สูงสุด 5 ไฟล์ • รวมไม่เกิน 20 MB</div>
         </div>
 
         <div class="file-list" id="fileList"></div>
@@ -275,13 +275,66 @@ dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag
 fi.addEventListener('change', () => addFiles(fi.files));
 
 function addFiles(rawFiles) {
+  const MAX_IMAGE_MB = 5;
+  const MAX_PDF_MB = 10;
+  const MAX_TOTAL_MB = 20;
+  const MB = 1024 * 1024;
+
   const allowed = [...rawFiles].filter(f => f.type.startsWith('image/') || f.type === 'application/pdf');
+
+  if (allowed.length === 0) {
+    showToast('❌ ไม่รองรับไฟล์ประเภทนี้ — รองรับเฉพาะ JPG, PNG, PDF เท่านั้น', 'err');
+    return;
+  }
+
   const slots = 5 - FILES.length;
-  if (slots <= 0) { showToast('สูงสุด 5 ไฟล์ต่อครั้ง', 'err'); return; }
-  allowed.slice(0, slots).forEach(f => { FILES.push({ file: f, status: 'wait' }); });
+  if (slots <= 0) {
+    showToast('❌ ครบ 5 ไฟล์แล้ว — กรุณาล้างไฟล์เก่าก่อนเพิ่มใหม่', 'err');
+    return;
+  }
+
+  if (allowed.length > slots) {
+    showToast(`⚠️ เลือกได้อีกแค่ ${slots} ไฟล์ — ระบบจะรับเฉพาะ ${slots} ไฟล์แรก`, 'err');
+  }
+
+  const errors = [];
+  const valid = [];
+
+  for (const f of allowed.slice(0, slots)) {
+    const sizeMB = (f.size / MB).toFixed(1);
+    const isPdf = f.type === 'application/pdf';
+    const limit = isPdf ? MAX_PDF_MB : MAX_IMAGE_MB;
+
+    if (f.size > limit * MB) {
+      errors.push(`❌ "${f.name}" ขนาด ${sizeMB} MB — เกินกำหนด (${isPdf ? 'PDF' : 'รูป'}สูงสุด ${limit} MB)`);
+      continue;
+    }
+
+    const currentTotal = FILES.reduce((s, f) => s + f.file.size, 0);
+    const newTotal = currentTotal + valid.reduce((s, f) => s + f.size, 0) + f.size;
+    if (newTotal > MAX_TOTAL_MB * MB) {
+      errors.push(`❌ "${f.name}" ทำให้ขนาดรวมเกิน ${MAX_TOTAL_MB} MB — ไม่สามารถเพิ่มได้`);
+      continue;
+    }
+
+    valid.push(f);
+  }
+
+  if (errors.length > 0) {
+    errors.forEach((msg, i) => setTimeout(() => showToast(msg, 'err'), i * 600));
+  }
+
+  if (valid.length === 0) { fi.value = ''; return; }
+
+  valid.forEach(f => FILES.push({ file: f, status: 'wait' }));
   renderFileList();
   document.getElementById('btnProcess').disabled = FILES.length === 0;
   fi.value = '';
+
+  if (valid.length > 0) {
+    const totalMB = (FILES.reduce((s, f) => s + f.file.size, 0) / MB).toFixed(1);
+    showToast(`✅ เพิ่ม ${valid.length} ไฟล์สำเร็จ — รวม ${totalMB} MB`, 'ok');
+  }
 }
 
 function renderFileList() {
@@ -565,9 +618,10 @@ function setProgress(pct) {
 
 function showToast(msg, type) {
   const t = document.getElementById('toast');
-  t.textContent = (type === 'ok' ? '✅ ' : '❌ ') + msg;
+  t.textContent = msg;
   t.className = `toast show ${type}`;
-  setTimeout(() => t.classList.remove('show'), 3000);
+  const duration = type === 'err' ? 4000 : 2500;
+  setTimeout(() => t.classList.remove('show'), duration);
 }
 
 // Init
