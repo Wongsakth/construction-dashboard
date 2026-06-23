@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OCR → Excel | TKTD</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -289,7 +290,7 @@ function renderFileList() {
     <div class="file-item" id="fitem-${i}">
       <span class="file-icon">${f.file.type === 'application/pdf' ? '📄' : '🖼️'}</span>
       <span class="file-name">${f.file.name}</span>
-      <span class="file-size">${(f.file.size/1024).toFixed(1)} KB</span>
+      <span class="file-size">${(f.file.size/1024).toFixed(1)} KB${f.file.type === 'application/pdf' ? ' · PDF' : ''}</span>
       <span class="file-status status-${f.status}" id="fstatus-${i}">${statusLabel(f.status)}</span>
       ${f.status === 'wait' ? `<button class="file-remove" onclick="removeFile(${i})">✕</button>` : ''}
     </div>`).join('');
@@ -327,10 +328,26 @@ async function processFiles() {
     setProgress(Math.round((i / FILES.length) * 100));
 
     try {
-      const b64 = await toBase64(FILES[i].file);
       const isPdf = FILES[i].file.type === 'application/pdf';
-      const data = await callClaudeOCR(b64, isPdf, FILES[i].file.name, FILES[i].file.type);
-      RESULTS[i] = { name: FILES[i].file.name, rows: data.rows, raw: data.raw };
+
+      if (isPdf) {
+        const pages = await pdfToPageImages(FILES[i].file);
+        const sheets = [];
+
+        for (let p = 0; p < pages.length; p++) {
+          setProgress(Math.round(((i + (p / pages.length)) / FILES.length) * 100));
+          const data = await callClaudeOCR(pages[p].base64, false, FILES[i].file.name, 'image/jpeg');
+          sheets.push({ label: `หน้า ${p + 1}`, rows: data.rows || [], raw: data.raw || '' });
+        }
+
+        const baseName = FILES[i].file.name.replace(/\.[^.]+$/, '');
+        RESULTS[i] = { name: FILES[i].file.name, sheets, baseName, rows: sheets.flatMap(s => s.rows.map(r => ({ หน้า: s.label, ...r }))) , raw: sheets.map(s => `--- ${s.label} ---\n${s.raw}`).join('\n\n') };
+      } else {
+        const b64 = await toBase64(FILES[i].file);
+        const data = await callClaudeOCR(b64, false, FILES[i].file.name, FILES[i].file.type);
+        RESULTS[i] = { name: FILES[i].file.name, rows: data.rows, raw: data.raw };
+      }
+
       FILES[i].status = 'done';
     } catch(e) {
       FILES[i].status = 'err';
@@ -365,16 +382,31 @@ async function callClaudeOCR(base64, isPdf, filename, fileType) {
   return await res.json();
 }
 
+// ── PDF → pages as images ──
+async function pdfToPageImages(file) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pages = [];
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement('canvas');
+    canvas.width  = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+    pages.push({ base64, mimeType: 'image/jpeg', label: `หน้า ${i}` });
+  }
+  return pages;
+}
+
 function toBase64(file) {
   return new Promise((res, rej) => {
-    if (file.type === 'application/pdf') {
-      const r = new FileReader();
-      r.onload = () => res(r.result.split(',')[1]);
-      r.onerror = rej;
-      r.readAsDataURL(file);
-      return;
-    }
-    // Resize image 50% before sending (like WVRN pattern)
+    // resize image 50%
     const reader = new FileReader();
     reader.onload = e => {
       const img = new Image();
@@ -434,17 +466,38 @@ function renderTabContent() {
 function exportExcel() {
   const wb = window.XLSX.utils.book_new();
   const usedNames = {};
+
   Object.values(RESULTS).forEach(r => {
-    if (!r.rows || r.rows.length === 0) return;
-    const ws = window.XLSX.utils.json_to_sheet(r.rows);
-    let sheetName = r.name.replace(/\.[^.]+$/, '').slice(0, 28);
-    if (usedNames[sheetName]) {
-      usedNames[sheetName]++;
-      sheetName = (sheetName.slice(0, 25) + '_' + usedNames[sheetName]).slice(0, 31);
+    if (r.sheets && r.sheets.length > 0) {
+      // PDF: แต่ละหน้าเป็น Sheet แยก
+      const baseName = r.baseName || r.name.replace(/\.[^.]+$/, '');
+      r.sheets.forEach((sheet, idx) => {
+        if (!sheet.rows || sheet.rows.length === 0) return;
+        const ws = window.XLSX.utils.json_to_sheet(sheet.rows);
+        let sheetName = `${baseName.slice(0, 20)}_P${idx + 1}`;
+        if (usedNames[sheetName]) {
+          usedNames[sheetName]++;
+          sheetName = `${sheetName}_${usedNames[sheetName]}`;
+        } else {
+          usedNames[sheetName] = 1;
+        }
+        sheetName = sheetName.slice(0, 31);
+        window.XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      });
     } else {
-      usedNames[sheetName] = 1;
+      // Image: 1 Sheet ต่อไฟล์
+      if (!r.rows || r.rows.length === 0) return;
+      const ws = window.XLSX.utils.json_to_sheet(r.rows);
+      let sheetName = r.name.replace(/\.[^.]+$/, '').slice(0, 28);
+      if (usedNames[sheetName]) {
+        usedNames[sheetName]++;
+        sheetName = `${sheetName.slice(0, 25)}_${usedNames[sheetName]}`;
+      } else {
+        usedNames[sheetName] = 1;
+      }
+      sheetName = sheetName.slice(0, 31);
+      window.XLSX.utils.book_append_sheet(wb, ws, sheetName);
     }
-    window.XLSX.utils.book_append_sheet(wb, ws, sheetName);
   });
 
   const now = new Date();
