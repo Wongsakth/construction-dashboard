@@ -21,14 +21,23 @@ exports.handler = async (event) => {
             }
           },
           {
-            text: `วิเคราะห์และแปลงข้อมูลทั้งหมดในไฟล์นี้เป็น JSON เท่านั้น ห้ามมีข้อความอื่น
-ให้ดึงข้อมูลทุกฟิลด์ที่มีในเอกสาร เช่น ตาราง รายการ ข้อความสำคัญ
-ตอบเป็น JSON format: {"rows": [{"คอลัมน์1": "ค่า", "คอลัมน์2": "ค่า"}], "raw": "ข้อความดิบทั้งหมด"}
-ถ้าเป็นตาราง ให้ใช้ header เป็น key
-ถ้าไม่ใช่ตาราง ให้ใช้ {"ลำดับ": "1", "ข้อมูล": "...", "หมายเหตุ": "..."}`
+            text: `You are an OCR expert. Extract ALL text and data from this image/document.
+Return ONLY valid JSON, no markdown, no explanation.
+Format: {"rows": [{"column1": "value", "column2": "value"}], "raw": "all extracted text"}
+Rules:
+- If it contains a table: use table headers as JSON keys, each row = one object in rows array
+- If it contains a list or items: use {"ลำดับ": "1", "ข้อมูล": "...", "หมายเหตุ": "..."}
+- If it contains key-value pairs: use {"หัวข้อ": "...", "ค่า": "..."}
+- Always fill "raw" with ALL extracted text
+- Extract every piece of text visible in the image
+- Support Thai and English text`
           }
         ]
-      }]
+      }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 4096,
+      }
     };
 
     const res = await fetch(
@@ -41,10 +50,15 @@ exports.handler = async (event) => {
     );
 
     const data = await res.json();
+
+    if (data.error) {
+      return { statusCode: 500, body: JSON.stringify({ error: data.error.message }) };
+    }
+
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     try {
-      const clean = text.replace(/```json|```/g, '').trim();
+      const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const parsed = JSON.parse(clean);
       return {
         statusCode: 200,
@@ -52,6 +66,7 @@ exports.handler = async (event) => {
         body: JSON.stringify(parsed),
       };
     } catch {
+      // fallback: return raw text as single row
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
