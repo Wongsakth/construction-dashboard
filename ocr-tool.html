@@ -349,42 +349,20 @@ async function processFiles() {
 }
 
 async function callClaudeOCR(base64, isPdf, filename) {
-  const mediaType = isPdf ? 'application/pdf' : 'image/jpeg';
-  const contentItem = isPdf
-    ? { type: 'document', source: { type: 'base64', media_type: mediaType, data: base64 } }
-    : { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } };
+  const mimeType = isPdf ? 'application/pdf' : 'image/jpeg';
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('/.netlify/functions/ocr', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1000,
-      messages: [{
-        role: 'user',
-        content: [
-          contentItem,
-          {
-            type: 'text',
-            text: `วิเคราะห์และแปลงข้อมูลทั้งหมดในไฟล์นี้เป็น JSON เท่านั้น ห้ามมีข้อความอื่น
-ให้ดึงข้อมูลทุกฟิลด์ที่มีในเอกสาร เช่น ตาราง, รายการ, ข้อความสำคัญ
-ตอบเป็น JSON format: {"rows": [{"คอลัมน์1": "ค่า", "คอลัมน์2": "ค่า"}], "raw": "ข้อความดิบทั้งหมด"}
-ถ้าเป็นตาราง ให้ใช้ header เป็น key
-ถ้าไม่ใช่ตาราง ให้ใช้ {"ลำดับ": "1", "ข้อมูล": "...", "หมายเหตุ": "..."}`
-          }
-        ]
-      }]
-    })
+    body: JSON.stringify({ base64, mimeType }),
   });
 
-  const json = await res.json();
-  const text = json.content?.[0]?.text || '';
-  try {
-    const clean = text.replace(/```json|```/g, '').trim();
-    return JSON.parse(clean);
-  } catch {
-    return { rows: [{ ข้อมูล: text }], raw: text };
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'OCR failed');
   }
+
+  return await res.json();
 }
 
 function toBase64(file) {
