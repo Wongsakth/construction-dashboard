@@ -22,26 +22,27 @@ exports.handler = async (event) => {
           },
           {
             text: `You are an OCR expert. Extract ALL text and data from this image/document.
-Return ONLY valid JSON, no markdown, no explanation.
-Format: {"rows": [{"column1": "value", "column2": "value"}], "raw": "all extracted text"}
+Return ONLY valid JSON, no markdown, no explanation, no code blocks.
+Format: {"rows": [{"column1": "value", "column2": "value"}], "raw": "all extracted text here"}
 Rules:
 - If it contains a table: use table headers as JSON keys, each row = one object in rows array
-- If it contains a list or items: use {"ลำดับ": "1", "ข้อมูล": "...", "หมายเหตุ": "..."}
+- If it contains a list: use {"ลำดับ": "1", "ข้อมูล": "...", "หมายเหตุ": "..."}
 - If it contains key-value pairs: use {"หัวข้อ": "...", "ค่า": "..."}
-- Always fill "raw" with ALL extracted text
-- Extract every piece of text visible in the image
-- Support Thai and English text`
+- Always fill "raw" with ALL visible text in the image
+- Support Thai and English text
+- Do NOT return empty strings, extract everything you see`
           }
         ]
       }],
       generationConfig: {
         temperature: 0.1,
         maxOutputTokens: 4096,
+        responseMimeType: 'application/json',
       }
     };
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,7 +67,6 @@ Rules:
         body: JSON.stringify(parsed),
       };
     } catch {
-      // fallback: return raw text as single row
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
