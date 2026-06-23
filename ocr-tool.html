@@ -185,7 +185,31 @@
   .toast.ok { border-color: var(--success); color: var(--success); }
   .toast.err { border-color: var(--danger); color: var(--danger); }
 
-  scrollbar-width: thin;
+  /* Format selector */
+  .format-bar {
+    display: none; margin-top: 14px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .format-bar.show { display: block; }
+  .format-label { font-size: 12px; color: var(--muted); margin-bottom: 10px; font-weight: 600; letter-spacing: .5px; }
+  .format-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .format-btn {
+    padding: 10px 8px; border-radius: 8px; border: 1.5px solid var(--border);
+    background: var(--surface); cursor: pointer; text-align: center;
+    transition: all .15s; color: var(--muted); font-size: 12px;
+  }
+  .format-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .format-btn.selected { border-color: var(--accent); background: rgba(79,142,247,.1); color: var(--accent); }
+  .format-btn .fmt-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+  .format-btn .fmt-name { font-weight: 700; font-size: 13px; display: block; }
+  .format-btn .fmt-desc { font-size: 10px; opacity: .7; display: block; margin-top: 2px; }
+  .format-btn.recommended { position: relative; }
+  .format-btn.recommended::after {
+    content: 'แนะนำ'; position: absolute; top: -8px; right: 6px;
+    background: var(--accent2); color: #0f1117;
+    font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px;
+  }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
@@ -223,10 +247,50 @@
           <button class="btn btn-primary" id="btnProcess" disabled onclick="processFiles()">
             ⚡ เริ่ม OCR
           </button>
-          <button class="btn btn-success" id="btnExport" disabled onclick="exportExcel()">
-            📥 Export Excel
+          <button class="btn btn-success" id="btnExport" disabled onclick="toggleFormatBar()">
+            📥 Export ▾
           </button>
           <button class="btn btn-outline" onclick="clearAll()">🗑 ล้างทั้งหมด</button>
+        </div>
+
+        <!-- Format Selector -->
+        <div class="format-bar" id="formatBar">
+          <div class="format-label">🎯 เลือกรูปแบบไฟล์ที่ต้องการ Export</div>
+          <div class="format-grid">
+            <div class="format-btn recommended selected" onclick="selectFormat('xlsx')" id="fmt-xlsx">
+              <span class="fmt-icon">📊</span>
+              <span class="fmt-name">Excel</span>
+              <span class="fmt-desc">.xlsx · แต่ละหน้าเป็น Sheet</span>
+            </div>
+            <div class="format-btn" onclick="selectFormat('csv')" id="fmt-csv">
+              <span class="fmt-icon">📋</span>
+              <span class="fmt-name">CSV</span>
+              <span class="fmt-desc">.csv · เปิดได้ทุก app</span>
+            </div>
+            <div class="format-btn" onclick="selectFormat('txt')" id="fmt-txt">
+              <span class="fmt-icon">📝</span>
+              <span class="fmt-name">Text</span>
+              <span class="fmt-desc">.txt · ข้อความดิบ มีเส้นคั่น</span>
+            </div>
+            <div class="format-btn" onclick="selectFormat('json')" id="fmt-json">
+              <span class="fmt-icon">🔧</span>
+              <span class="fmt-name">JSON</span>
+              <span class="fmt-desc">.json · สำหรับ Developer</span>
+            </div>
+            <div class="format-btn" onclick="selectFormat('md')" id="fmt-md">
+              <span class="fmt-icon">📄</span>
+              <span class="fmt-name">Markdown</span>
+              <span class="fmt-desc">.md · ตารางสวยงาม</span>
+            </div>
+            <div class="format-btn" onclick="selectFormat('html')" id="fmt-html">
+              <span class="fmt-icon">🌐</span>
+              <span class="fmt-name">HTML</span>
+              <span class="fmt-desc">.html · ดูในเบราว์เซอร์</span>
+            </div>
+          </div>
+          <button class="btn btn-success" style="width:100%" onclick="exportSelected()">
+            📥 Download <span id="fmtLabel">Excel (.xlsx)</span>
+          </button>
         </div>
 
         <div class="result-area" id="resultArea">
@@ -515,7 +579,155 @@ function renderTabContent() {
   }
 }
 
-// ── Export Excel ──
+// ── Format Selector ──
+let selectedFormat = 'xlsx';
+const FORMAT_LABELS = {
+  xlsx: 'Excel (.xlsx)', csv: 'CSV (.csv)', txt: 'Text (.txt)',
+  json: 'JSON (.json)', md: 'Markdown (.md)', html: 'HTML (.html)'
+};
+
+function toggleFormatBar() {
+  const bar = document.getElementById('formatBar');
+  bar.classList.toggle('show');
+}
+
+function selectFormat(fmt) {
+  selectedFormat = fmt;
+  document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById(`fmt-${fmt}`).classList.add('selected');
+  document.getElementById('fmtLabel').textContent = FORMAT_LABELS[fmt];
+}
+
+function exportSelected() {
+  const now = new Date();
+  const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+
+  switch (selectedFormat) {
+    case 'xlsx': exportExcel(); break;
+    case 'csv':  exportCSV(ts); break;
+    case 'txt':  exportTXT(ts); break;
+    case 'json': exportJSON(ts); break;
+    case 'md':   exportMD(ts); break;
+    case 'html': exportHTML(ts); break;
+  }
+  document.getElementById('formatBar').classList.remove('show');
+}
+
+function downloadFile(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ── CSV ──
+function exportCSV(ts) {
+  const parts = [];
+  Object.values(RESULTS).forEach(r => {
+    const rows = r.rows || [];
+    if (!rows.length) return;
+    const cols = Object.keys(rows[0]);
+    const header = cols.map(c => `"${c}"`).join(',');
+    const body = rows.map(row => cols.map(c => `"${String(row[c] ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    parts.push(`# ${r.name}\n${header}\n${body}`);
+  });
+  downloadFile('\uFEFF' + parts.join('\n\n'), `OCR_${ts}.csv`, 'text/csv;charset=utf-8');
+  showToast('✅ Export CSV สำเร็จ', 'ok');
+}
+
+// ── TXT ──
+function exportTXT(ts) {
+  const DIVIDER = '═'.repeat(60);
+  const PAGE_DIV = '─'.repeat(40);
+  let out = `OCR Export — ${new Date().toLocaleString('th-TH')}\n${DIVIDER}\n\n`;
+
+  Object.values(RESULTS).forEach(r => {
+    out += `📄 ไฟล์: ${r.name}\n${DIVIDER}\n`;
+    if (r.sheets && r.sheets.length > 0) {
+      r.sheets.forEach((s, i) => {
+        out += `\n┌─ ${s.label} ${'─'.repeat(Math.max(0, 38 - s.label.length))}┐\n`;
+        out += s.raw || '(ไม่พบข้อมูล)';
+        out += `\n└${'─'.repeat(40)}┘\n`;
+        if (i < r.sheets.length - 1) out += `\n${PAGE_DIV}\n`;
+      });
+    } else {
+      out += (r.raw || '(ไม่พบข้อมูล)') + '\n';
+    }
+    out += `\n${DIVIDER}\n\n`;
+  });
+
+  downloadFile(out, `OCR_${ts}.txt`, 'text/plain;charset=utf-8');
+  showToast('✅ Export TXT สำเร็จ', 'ok');
+}
+
+// ── JSON ──
+function exportJSON(ts) {
+  const output = Object.values(RESULTS).map(r => ({
+    file: r.name,
+    pages: r.sheets ? r.sheets.length : 1,
+    sheets: r.sheets || [{ label: 'หน้า 1', rows: r.rows, raw: r.raw }],
+  }));
+  downloadFile(JSON.stringify(output, null, 2), `OCR_${ts}.json`, 'application/json');
+  showToast('✅ Export JSON สำเร็จ', 'ok');
+}
+
+// ── Markdown ──
+function exportMD(ts) {
+  let out = `# OCR Export\n_${new Date().toLocaleString('th-TH')}_\n\n`;
+
+  Object.values(RESULTS).forEach(r => {
+    out += `## 📄 ${r.name}\n\n`;
+    const sheets = r.sheets || [{ label: 'ข้อมูล', rows: r.rows }];
+    sheets.forEach(s => {
+      out += `### ${s.label}\n\n`;
+      if (s.rows && s.rows.length > 0) {
+        const cols = Object.keys(s.rows[0]);
+        out += `| ${cols.join(' | ')} |\n`;
+        out += `| ${cols.map(() => '---').join(' | ')} |\n`;
+        s.rows.forEach(row => {
+          out += `| ${cols.map(c => String(row[c] ?? '').replace(/\|/g, '\\|')).join(' | ')} |\n`;
+        });
+      } else {
+        out += `_(ไม่พบข้อมูล)_\n`;
+      }
+      out += '\n';
+    });
+  });
+
+  downloadFile(out, `OCR_${ts}.md`, 'text/markdown;charset=utf-8');
+  showToast('✅ Export Markdown สำเร็จ', 'ok');
+}
+
+// ── HTML ──
+function exportHTML(ts) {
+  let tables = '';
+  Object.values(RESULTS).forEach(r => {
+    const sheets = r.sheets || [{ label: 'ข้อมูล', rows: r.rows }];
+    sheets.forEach(s => {
+      if (!s.rows || !s.rows.length) return;
+      const cols = Object.keys(s.rows[0]);
+      tables += `<h2>📄 ${r.name} — ${s.label}</h2>
+<table><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+<tbody>${s.rows.map(row => `<tr>${cols.map(c => `<td>${row[c] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody></table>\n`;
+    });
+  });
+
+  const html = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+<title>OCR Export ${ts}</title>
+<style>body{font-family:sans-serif;padding:24px;background:#f5f5f5}h2{margin-top:28px;color:#1a1d27}
+table{border-collapse:collapse;width:100%;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);margin-bottom:24px}
+th{background:#4f8ef7;color:#fff;padding:10px 14px;text-align:left;font-size:13px}
+td{padding:8px 14px;border-bottom:1px solid #eee;font-size:13px}
+tr:last-child td{border-bottom:none}tr:hover td{background:#f0f5ff}</style></head>
+<body><h1>📊 OCR Export</h1><p style="color:#888">${new Date().toLocaleString('th-TH')}</p>${tables}</body></html>`;
+
+  downloadFile(html, `OCR_${ts}.html`, 'text/html;charset=utf-8');
+  showToast('✅ Export HTML สำเร็จ', 'ok');
+}
+
+// ── Excel (existing) ──
 function exportExcel() {
   const wb = window.XLSX.utils.book_new();
   const usedNames = {};
