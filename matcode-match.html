@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mat Code Matcher | TKTD</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f1117; --surface: #1a1d27; --surface2: #222536;
+  --border: #2e3147; --accent: #4f8ef7; --accent2: #38d9a9;
+  --text: #e8eaf0; --muted: #8890a8; --danger: #f66; --success: #38d9a9;
+  --warn: #f0a500; --radius: 10px; --font: 'Segoe UI','Noto Sans Thai',sans-serif;
+}
+body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+.header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; gap: 14px; }
+.logo { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 2px; }
+.header-title { font-size: 15px; font-weight: 600; }
+.header-nav { margin-left: auto; display: flex; gap: 8px; }
+.nav-link { font-size: 12px; color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); }
+.nav-link:hover { color: var(--accent); border-color: var(--accent); }
+
+.main { padding: 24px 28px; max-width: 1400px; display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
+
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.panel-head { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.panel-body { padding: 16px; }
+
+/* Status bar */
+.status-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.stat-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.stat-chip .val { font-weight: 700; color: var(--accent); }
+
+/* Textarea */
+.ocr-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; color: var(--text); font-size: 13px; font-family: var(--font); resize: vertical; min-height: 180px; outline: none; line-height: 1.6; }
+.ocr-input:focus { border-color: var(--accent); }
+.ocr-input::placeholder { color: var(--muted); }
+
+/* Buttons */
+.btn { padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .15s; display: inline-flex; align-items: center; gap: 6px; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #6ba3ff; }
+.btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+.btn-success { background: var(--accent2); color: #0f1117; }
+.btn-success:hover:not(:disabled) { background: #5de8bc; }
+.btn-success:disabled { opacity: .4; cursor: not-allowed; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+/* Threshold */
+.threshold-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 12px; color: var(--muted); }
+.threshold-row input[type=range] { flex: 1; }
+.threshold-val { font-weight: 700; color: var(--accent); min-width: 32px; }
+
+/* Loading */
+.loading { text-align: center; padding: 40px; color: var(--muted); font-size: 13px; }
+.spinner { display: inline-block; width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin-bottom: 10px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Table */
+.table-wrap { overflow-x: auto; max-height: 560px; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--muted); padding: 8px 12px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); position: sticky; top: 0; white-space: nowrap; }
+td { padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,.04); vertical-align: top; }
+tr:hover td { background: rgba(79,142,247,.04); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-matched { background: rgba(56,217,169,.15); color: var(--success); }
+.badge-review  { background: rgba(240,165,0,.15); color: var(--warn); }
+.badge-none    { background: rgba(255,102,102,.15); color: var(--danger); }
+.score-bar { height: 4px; border-radius: 2px; margin-top: 3px; background: var(--border); }
+.score-fill { height: 100%; border-radius: 2px; }
+.code-pill { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-family: monospace; font-size: 11px; color: var(--accent); }
+
+/* Candidates */
+.candidates { display: flex; flex-direction: column; gap: 4px; }
+.candidate { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; font-size: 11px; cursor: pointer; transition: border-color .15s; }
+.candidate:hover { border-color: var(--accent2); }
+.candidate.selected { border-color: var(--accent2); background: rgba(56,217,169,.08); }
+.candidate-name { color: var(--text); font-weight: 500; }
+.candidate-code { color: var(--muted); font-size: 10px; }
+.candidate-score { float: right; font-weight: 700; }
+
+/* Empty state */
+.empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; font-size: 13px; box-shadow: 0 4px 20px rgba(0,0,0,.4); transform: translateY(80px); opacity: 0; transition: all .3s; z-index: 999; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.ok { border-color: var(--success); color: var(--success); }
+.toast.err { border-color: var(--danger); color: var(--danger); }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.db-status { font-size: 11px; padding: 3px 8px; border-radius: 20px; }
+.db-ok  { background: rgba(56,217,169,.15); color: var(--success); }
+.db-err { background: rgba(255,102,102,.15); color: var(--danger); }
+.db-loading { background: rgba(79,142,247,.15); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="logo">TKTD</span>
+  <span style="color:var(--border)">|</span>
+  <span class="header-title">🔗 Mat Code Matcher</span>
+  <div class="header-nav">
+    <a href="ocr-tool.html" class="nav-link">🔍 OCR Tool</a>
+    <a href="index.html" class="nav-link">🏠 Dashboard</a>
+    <span class="db-status db-loading" id="dbStatus">⏳ กำลังโหลด Matcode...</span>
+  </div>
+</div>
+
+<div class="main">
+  <!-- Left Panel -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="panel">
+      <div class="panel-head"><div class="dot"></div> วางข้อมูล OCR</div>
+      <div class="panel-body">
+        <textarea class="ocr-input" id="ocrInput" placeholder="วางผลจาก OCR ที่นี่ เช่น&#10;ปูนผสมเสร็จ #180 | 21 คิว | 1800&#10;ไม้อัด 4 มิล | 10 แผ่น | 250&#10;&#10;หรือวางแบบข้อความธรรมดาก็ได้"></textarea>
+
+        <div class="threshold-row">
+          <span>Score ขั้นต่ำ</span>
+          <input type="range" min="40" max="95" value="70" id="threshold" oninput="document.getElementById('thVal').textContent=this.value+'%'">
+          <span class="threshold-val" id="thVal">70%</span>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnMatch" onclick="doMatch()" disabled>⚡ Match Matcode</button>
+          <button class="btn btn-outline" onclick="clearAll()">🗑 ล้าง</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div class="dot" style="background:var(--accent2);box-shadow:0 0 6px var(--accent2)"></div> สรุปผล</div>
+      <div class="panel-body">
+        <div class="status-bar" id="statusBar">
+          <div class="stat-chip">รายการ <span class="val" id="statTotal">0</span></div>
+          <div class="stat-chip" style="--accent:#38d9a9">✅ Matched <span class="val" id="statMatched" style="color:var(--success)">0</span></div>
+          <div class="stat-chip">⚠️ Review <span class="val" id="statReview" style="color:var(--warn)">0</span></div>
+          <div class="stat-chip">❌ ไม่พบ <span class="val" id="statNone" style="color:var(--danger)">0</span></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-success" id="btnExport" onclick="exportExcel()" disabled>📥 Export Excel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="panel">
+    <div class="panel-head"><div class="dot"></div> ผลการ Match <span style="color:var(--muted);font-size:11px;margin-left:auto">คลิก candidate เพื่อเลือก</span></div>
+    <div class="panel-body" style="padding:0">
+      <div id="resultArea">
+        <div class="empty">
+          <div class="empty-icon">🔗</div>
+          <div>วางข้อมูล OCR แล้วกด Match</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let MATCODES = [];
+let RESULTS = [];
+
+// ── Load Matcodes from GitHub ──
+async function loadMatcodes() {
+  try {
+    const res = await fetch('./data/matcodes.json');
+    if (!res.ok) throw new Error('ไม่พบไฟล์ matcodes.json');
+    MATCODES = await res.json();
+    document.getElementById('dbStatus').textContent = `✅ Matcode ${MATCODES.length.toLocaleString()} รายการ`;
+    document.getElementById('dbStatus').className = 'db-status db-ok';
+    document.getElementById('btnMatch').disabled = false;
+  } catch(e) {
+    document.getElementById('dbStatus').textContent = '❌ โหลด Matcode ไม่ได้';
+    document.getElementById('dbStatus').className = 'db-status db-err';
+    showToast('❌ ' + e.message, 'err');
+  }
+}
+
+// ── Fuzzy Match ──
+function normalize(str) {
+  return (str || '').toLowerCase()
+    .replace(/[#\-_/\\().]/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+}
+
+function scoreMatch(query, candidate) {
+  const q = normalize(query);
+  const c = normalize(candidate);
+  if (!q || !c) return 0;
+  if (c === q) return 100;
+  if (c.includes(q)) return 90;
+  if (q.includes(c)) return 85;
+
+  // Token match
+  const qTokens = q.split(' ').filter(t => t.length > 0);
+  const cTokens = c.split(' ').filter(t => t.length > 0);
+  let matched = 0;
+  for (const qt of qTokens) {
+    if (cTokens.some(ct => ct.includes(qt) || qt.includes(ct))) matched++;
+  }
+  const tokenScore = qTokens.length > 0 ? (matched / qTokens.length) * 80 : 0;
+
+  // Partial char match
+  let charMatch = 0;
+  for (const ch of q) {
+    if (c.includes(ch)) charMatch++;
+  }
+  const charScore = q.length > 0 ? (charMatch / q.length) * 40 : 0;
+
+  return Math.min(95, Math.max(tokenScore, charScore));
+}
+
+function findMatches(query, topN = 3) {
+  const scored = MATCODES.map(m => ({
+    ...m,
+    score: Math.round(scoreMatch(query, m.n + ' ' + m.p + ' ' + m.s + ' ' + m.b))
+  }));
+  return scored.sort((a, b) => b.score - a.score).slice(0, topN);
+}
+
+// ── Parse OCR text → items ──
+function parseOCR(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 3);
+  const items = [];
+  for (const line of lines) {
+    // Skip header-like lines
+    if (/^(ใบส่ง|ใบยืม|เล่มที่|หจก\.|นาม|ที่อยู่|วันที่|จำนวน|ราคา|DESCRIPTION|UNIT|AMOUNT|════|────|📄|OCR Export)/i.test(line)) continue;
+
+    // Try to parse: ชื่อ | จำนวน | ราคา or ชื่อ จำนวน หน่วย ราคา
+    const parts = line.split(/[|,\t]+/).map(p => p.trim());
+    let name = '', qty = '', unit = '', price = '';
+
+    if (parts.length >= 2) {
+      name = parts[0];
+      // หาตัวเลขใน parts ที่เหลือ
+      const nums = parts.slice(1).filter(p => /^\d+[\d,.]*(\.?\d+)?$/.test(p.replace(/,/g,'')));
+      const texts = parts.slice(1).filter(p => !/^\d/.test(p) && p.length > 0);
+      qty = nums[0] || '';
+      price = nums[1] || '';
+      unit = texts[0] || '';
+    } else {
+      // Single line — extract numbers
+      const numMatches = line.match(/(\d+[\d,.]*)/g) || [];
+      const textPart = line.replace(/\d+[\d,.]*/g, '').replace(/\s+/g,' ').trim();
+      name = textPart || line;
+      qty = numMatches[0] || '';
+      price = numMatches[1] || '';
+    }
+
+    if (name.length > 1) {
+      items.push({ name: name.trim(), qty, unit, price, raw: line });
+    }
+  }
+  return items;
+}
+
+// ── Do Match ──
+async function doMatch() {
+  const text = document.getElementById('ocrInput').value;
+  if (!text.trim()) { showToast('❌ กรุณาวางข้อมูล OCR ก่อน', 'err'); return; }
+  const threshold = parseInt(document.getElementById('threshold').value);
+
+  document.getElementById('resultArea').innerHTML = `<div class="loading"><div class="spinner"></div><br>กำลัง Match ${MATCODES.length.toLocaleString()} รายการ...</div>`;
+
+  // ให้ browser render ก่อน
+  await new Promise(r => setTimeout(r, 50));
+
+  const items = parseOCR(text);
+  if (items.length === 0) {
+    document.getElementById('resultArea').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div>ไม่พบรายการสินค้าในข้อมูล OCR</div></div>`;
+    return;
+  }
+
+  RESULTS = items.map((item, i) => {
+    const candidates = findMatches(item.name, 5);
+    const best = candidates[0];
+    const status = best.score >= threshold ? 'matched' : best.score >= 40 ? 'review' : 'none';
+    return { ...item, candidates, selected: 0, status, idx: i };
+  });
+
+  renderResults();
+  updateStats();
+  document.getElementById('btnExport').disabled = false;
+}
+
+// ── Render Results ──
+function renderResults() {
+  const area = document.getElementById('resultArea');
+  if (!RESULTS.length) { area.innerHTML = '<div class="empty"><div class="empty-icon">🔗</div><div>ไม่มีผล</div></div>'; return; }
+
+  const threshold = parseInt(document.getElementById('threshold').value);
+
+  let html = '<div class="table-wrap"><table>';
+  html += `<thead><tr>
+    <th>#</th><th>ชื่อในใบเสร็จ</th><th>จำนวน</th><th>หน่วย</th><th>ราคา</th>
+    <th>Mat Code</th><th>ชื่อใน ERP</th><th>Score</th><th>Candidates</th>
+  </tr></thead><tbody>`;
+
+  RESULTS.forEach((r, i) => {
+    const sel = r.candidates[r.selected] || {};
+    const score = sel.score || 0;
+    const status = score >= threshold ? 'matched' : score >= 40 ? 'review' : 'none';
+    const badgeLabel = { matched: '✅ Matched', review: '⚠️ Review', none: '❌ ไม่พบ' }[status];
+    const badgeClass = `badge badge-${status}`;
+    const scoreColor = score >= threshold ? '#38d9a9' : score >= 40 ? '#f0a500' : '#f66';
+
+    const candidateHtml = r.candidates.slice(0, 3).map((c, ci) => `
+      <div class="candidate ${ci === r.selected ? 'selected' : ''}" onclick="selectCandidate(${i},${ci})">
+        <span class="candidate-score" style="color:${c.score >= threshold ? 'var(--success)' : c.score >= 40 ? 'var(--warn)' : 'var(--danger)'}">${c.score}%</span>
+        <div class="candidate-name">${c.n || c.p}</div>
+        <div class="candidate-code">${c.c} · ${c.u || ''}</div>
+      </div>`).join('');
+
+    html += `<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td><span style="font-weight:500">${r.name}</span></td>
+      <td>${r.qty || '-'}</td>
+      <td>${r.unit || '-'}</td>
+      <td>${r.price || '-'}</td>
+      <td>${sel.c ? `<span class="code-pill">${sel.c}</span>` : '-'}</td>
+      <td>${sel.n || '-'}<br><span style="color:var(--muted);font-size:10px">${sel.g || ''} ${sel.sg ? '> '+sel.sg : ''}</span></td>
+      <td>
+        <span class="${badgeClass}">${badgeLabel}</span>
+        <div class="score-bar"><div class="score-fill" style="width:${score}%;background:${scoreColor}"></div></div>
+        <span style="font-size:10px;color:var(--muted)">${score}%</span>
+      </td>
+      <td><div class="candidates">${candidateHtml}</div></td>
+    </tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  area.innerHTML = html;
+}
+
+function selectCandidate(itemIdx, candIdx) {
+  RESULTS[itemIdx].selected = candIdx;
+  renderResults();
+  updateStats();
+}
+
+function updateStats() {
+  const threshold = parseInt(document.getElementById('threshold').value);
+  let matched = 0, review = 0, none = 0;
+  RESULTS.forEach(r => {
+    const score = r.candidates[r.selected]?.score || 0;
+    if (score >= threshold) matched++;
+    else if (score >= 40) review++;
+    else none++;
+  });
+  document.getElementById('statTotal').textContent = RESULTS.length;
+  document.getElementById('statMatched').textContent = matched;
+  document.getElementById('statReview').textContent = review;
+  document.getElementById('statNone').textContent = none;
+}
+
+// ── Export Excel ──
+function exportExcel() {
+  const threshold = parseInt(document.getElementById('threshold').value);
+  const wb = window.XLSX.utils.book_new();
+
+  const matched = [], review = [], notFound = [];
+
+  RESULTS.forEach((r, i) => {
+    const sel = r.candidates[r.selected] || {};
+    const score = sel.score || 0;
+    const row = {
+      '#': i + 1,
+      'ชื่อในใบเสร็จ': r.name,
+      'จำนวน': r.qty,
+      'หน่วย': r.unit || sel.u || '',
+      'ราคา/หน่วย': r.price,
+      'Product Code': sel.c || '',
+      'ชื่อใน ERP (ชื่อในPO)': sel.n || '',
+      'กลุ่มสินค้า': sel.g || '',
+      'กลุ่มย่อย': sel.sg || '',
+      'หน่วยใน ERP': sel.u || '',
+      'Score (%)': score,
+      'สถานะ': score >= threshold ? 'Matched' : score >= 40 ? 'Review' : 'ไม่พบ',
+    };
+    if (score >= threshold) matched.push(row);
+    else if (score >= 40) review.push({...row, 'Candidate 2': r.candidates[1]?.n || '', 'Code 2': r.candidates[1]?.c || '', 'Candidate 3': r.candidates[2]?.n || '', 'Code 3': r.candidates[2]?.c || ''});
+    else notFound.push(row);
+  });
+
+  if (matched.length) window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(matched), '✅ Matched');
+  if (review.length) window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(review), '⚠️ Review');
+  if (notFound.length) window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(notFound), '❌ ไม่พบ');
+
+  const now = new Date();
+  const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+  const fname = `MatMatch_${ts}.xlsx`;
+  window.XLSX.writeFile(wb, fname);
+  showToast(`✅ Export "${fname}" สำเร็จ`, 'ok');
+}
+
+function clearAll() {
+  document.getElementById('ocrInput').value = '';
+  RESULTS = [];
+  document.getElementById('resultArea').innerHTML = '<div class="empty"><div class="empty-icon">🔗</div><div>วางข้อมูล OCR แล้วกด Match</div></div>';
+  document.getElementById('btnExport').disabled = true;
+  ['statTotal','statMatched','statReview','statNone'].forEach(id => document.getElementById(id).textContent = '0');
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.classList.remove('show'), type === 'err' ? 4000 : 2500);
+}
+
+// threshold change
+document.getElementById('threshold').addEventListener('input', () => {
+  if (RESULTS.length) { renderResults(); updateStats(); }
+});
+
+// textarea enable match button
+document.getElementById('ocrInput').addEventListener('input', function() {
+  if (MATCODES.length) document.getElementById('btnMatch').disabled = !this.value.trim();
+});
+
+loadMatcodes();
+</script>
+</body>
+</html>
