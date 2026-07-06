@@ -776,7 +776,12 @@ function exportExcel() {
       const baseName = r.baseName || r.name.replace(/\.[^.]+$/, '');
       r.sheets.forEach((sheet, idx) => {
         if (!sheet.rows || sheet.rows.length === 0) return;
-        const ws = window.XLSX.utils.json_to_sheet(sheet.rows);
+        // เพิ่ม vendor ใน row แรก
+        const rows = sheet.rows.map((row, ri) => ({
+          ...(ri === 0 && r.vendor?.name ? { 'ผู้ขาย': r.vendor.name, 'เลขผู้เสียภาษี': r.vendor.tax_id || '', 'เบอร์โทร': r.vendor.phone || '' } : { 'ผู้ขาย': '', 'เลขผู้เสียภาษี': '', 'เบอร์โทร': '' }),
+          ...row
+        }));
+        const ws = window.XLSX.utils.json_to_sheet(rows);
         let sheetName = `${baseName.slice(0, 20)}_P${idx + 1}`;
         if (usedNames[sheetName]) {
           usedNames[sheetName]++;
@@ -790,7 +795,11 @@ function exportExcel() {
     } else {
       // Image: 1 Sheet ต่อไฟล์
       if (!r.rows || r.rows.length === 0) return;
-      const ws = window.XLSX.utils.json_to_sheet(r.rows);
+      const rows = r.rows.map((row, ri) => ({
+        ...(ri === 0 && r.vendor?.name ? { 'ผู้ขาย': r.vendor.name, 'เลขผู้เสียภาษี': r.vendor.tax_id || '', 'เบอร์โทร': r.vendor.phone || '' } : { 'ผู้ขาย': '', 'เลขผู้เสียภาษี': '', 'เบอร์โทร': '' }),
+        ...row
+      }));
+      const ws = window.XLSX.utils.json_to_sheet(rows);
       let sheetName = r.name.replace(/\.[^.]+$/, '').slice(0, 28);
       if (usedNames[sheetName]) {
         usedNames[sheetName]++;
