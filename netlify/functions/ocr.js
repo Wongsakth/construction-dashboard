@@ -22,17 +22,24 @@ exports.handler = async (event) => {
           },
           {
             text: `You are an OCR expert for invoices and receipts.
-Extract ONLY the line items / products from this document.
-Ignore: company name, address, tax ID, customer info, dates, invoice numbers.
+Extract vendor info and line items from this document.
 
 Return ONLY valid JSON, no markdown, no explanation:
-{"rows": [{"ลำดับ": "1", "รายการ": "ชื่อสินค้า", "จำนวน": "21", "หน่วย": "คิว", "ราคา/หน่วย": "1800", "จำนวนเงิน": "37800"}], "raw": ""}
+{
+  "vendor": {
+    "name": "ชื่อบริษัท/ร้านค้าผู้ขาย",
+    "tax_id": "เลขที่ผู้เสียภาษี ถ้ามี",
+    "phone": "เบอร์โทร ถ้ามี"
+  },
+  "rows": [
+    {"ลำดับ": "1", "รายการ": "ชื่อสินค้า", "จำนวน": "21", "หน่วย": "คิว", "ราคา/หน่วย": "1800", "จำนวนเงิน": "37800"}
+  ]
+}
 
 Rules:
+- vendor = ผู้ขาย ไม่ใช่ผู้ซื้อ
 - Each product/service line = one row
-- If quantity not found, leave empty string
-- If unit not found, leave empty string  
-- If price not found, leave empty string
+- If any field not found, use empty string
 - Support Thai and English
 - Extract ALL line items visible`
           }
