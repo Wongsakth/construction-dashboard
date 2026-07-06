@@ -433,6 +433,14 @@ document.getElementById('ocrInput').addEventListener('input', function() {
 });
 
 loadMatcodes();
+
+// รับข้อมูลจาก OCR Tool อัตโนมัติ
+const ocrData = sessionStorage.getItem('ocr_to_matcode');
+if (ocrData) {
+  document.getElementById('ocrInput').value = ocrData;
+  sessionStorage.removeItem('ocr_to_matcode');
+  showToast('✅ รับข้อมูลจาก OCR Tool แล้ว กด Match ได้เลย', 'ok');
+}
 </script>
 </body>
 </html>

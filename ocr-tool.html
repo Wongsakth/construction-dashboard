@@ -221,7 +221,7 @@
   <span class="logo">TKTD</span>
   <span style="color:var(--border)">|</span>
   <span class="header-title">🔍 OCR → Excel</span>
-  <span style="background:rgba(79,142,247,.15);color:var(--accent);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid rgba(79,142,247,.3)" id="versionBadge">v1.7 · 2026-07-06</span>
+  <span style="background:rgba(79,142,247,.15);color:var(--accent);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid rgba(79,142,247,.3)" id="versionBadge">v1.8 · 2026-07-06</span>
   <span class="header-sub">แปลงรูปภาพ / PDF เป็น Excel อัตโนมัติด้วย AI</span>
 </div>
 
@@ -250,6 +250,9 @@
           </button>
           <button class="btn btn-success" id="btnExport" disabled onclick="toggleFormatBar()">
             📥 Export ▾
+          </button>
+          <button class="btn btn-outline" id="btnSendMat" disabled onclick="sendToMatcode()" style="border-color:var(--accent2);color:var(--accent2)">
+            🔗 ส่ง Mat Code Matching
           </button>
           <button class="btn btn-outline" onclick="clearAll()">🗑 ล้างทั้งหมด</button>
         </div>
@@ -492,6 +495,7 @@ async function processFiles() {
   renderFileList();
   document.getElementById('btnProcess').disabled = true;
   document.getElementById('formatBar').classList.remove('show');
+  document.getElementById('btnSendMat').disabled = false;
 
   saveHistory();
   showToast('✅ OCR เสร็จสิ้น! พร้อม Export', 'ok');
@@ -608,7 +612,30 @@ function renderTabContent() {
   el.innerHTML = html;
 }
 
-// ── Format Selector ──
+// ── Send to MatCode Matching ──
+function sendToMatcode() {
+  // รวบรวม รายการสินค้าทั้งหมดจาก RESULTS
+  const lines = [];
+  Object.values(RESULTS).forEach(r => {
+    const sheets = r.sheets || [{ rows: r.rows }];
+    sheets.forEach(s => {
+      (s.rows || []).forEach(row => {
+        const name = row['รายการ'] || row['ข้อมูล'] || '';
+        const qty  = row['จำนวน'] || '';
+        const unit = row['หน่วย'] || '';
+        const price = row['ราคา/หน่วย'] || row['จำนวนเงิน'] || '';
+        if (name) lines.push([name, qty, unit, price].filter(Boolean).join(' | '));
+      });
+    });
+  });
+
+  if (!lines.length) { showToast('❌ ไม่พบรายการสินค้า', 'err'); return; }
+
+  // เก็บใน sessionStorage แล้วเปิดหน้า matcode-match
+  sessionStorage.setItem('ocr_to_matcode', lines.join('\n'));
+  showToast(`✅ ส่ง ${lines.length} รายการไปยัง Mat Code Matching`, 'ok');
+  setTimeout(() => { window.location.href = 'matcode-match.html'; }, 800);
+}
 let selectedFormat = 'xlsx';
 const FORMAT_LABELS = {
   xlsx: 'Excel (.xlsx)', csv: 'CSV (.csv)', txt: 'Text (.txt)',
