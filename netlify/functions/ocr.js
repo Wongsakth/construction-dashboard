@@ -1,4 +1,8 @@
 exports.handler = async (event) => {
+  if (event.httpMethod === 'GET') {
+    return { statusCode: 200, body: JSON.stringify({ version: 'ocr.js v1.4 · 2026-07-06' }) };
+  }
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
@@ -48,7 +52,6 @@ Rules:
       generationConfig: {
         temperature: 0.1,
         maxOutputTokens: 4096,
-        responseMimeType: 'application/json',
       }
     };
 
