@@ -466,7 +466,7 @@ async function processFiles() {
       } else {
         const b64 = await toBase64(FILES[i].file);
         const data = await callClaudeOCR(b64, false, FILES[i].file.name, FILES[i].file.type);
-        RESULTS[i] = { name: FILES[i].file.name, rows: data.rows, raw: data.raw };
+        RESULTS[i] = { name: FILES[i].file.name, rows: data.rows, raw: data.raw, vendor: data.vendor || null };
       }
 
       FILES[i].status = 'done';
@@ -579,15 +579,29 @@ function renderTabContent() {
   const r = RESULTS[activeTab];
   if (!r) return;
 
+  let html = '';
+
+  // แสดง vendor info ถ้ามี
+  if (r.vendor && (r.vendor.name || r.vendor.tax_id || r.vendor.phone)) {
+    html += `<div style="background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px">
+      <span style="color:var(--accent);font-weight:600">🏢 ผู้ขาย:</span>
+      ${r.vendor.name ? `<span style="margin-left:8px">${r.vendor.name}</span>` : ''}
+      ${r.vendor.tax_id ? `<span style="margin-left:12px;color:var(--muted)">TAX: ${r.vendor.tax_id}</span>` : ''}
+      ${r.vendor.phone ? `<span style="margin-left:12px;color:var(--muted)">📞 ${r.vendor.phone}</span>` : ''}
+    </div>`;
+  }
+
   if (r.rows && r.rows.length > 0) {
     const cols = Object.keys(r.rows[0]);
-    el.innerHTML = `<table class="result-table">
+    html += `<table class="result-table">
       <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
       <tbody>${r.rows.map(row => `<tr>${cols.map(c => `<td>${row[c] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
     </table>`;
   } else {
-    el.innerHTML = `<pre class="raw-text">${r.raw || 'ไม่พบข้อมูล'}</pre>`;
+    html += `<pre class="raw-text">${r.raw || 'ไม่พบข้อมูล'}</pre>`;
   }
+
+  el.innerHTML = html;
 }
 
 // ── Format Selector ──
@@ -789,7 +803,18 @@ function exportExcel() {
     }
   });
 
-  const fname = getExportName('xlsx');
+  // Sheet สรุป vendor
+  const vendorRows = Object.values(RESULTS)
+    .filter(r => r.vendor && r.vendor.name)
+    .map(r => ({
+      'ไฟล์': r.name,
+      'ชื่อผู้ขาย': r.vendor.name || '',
+      'เลขผู้เสียภาษี': r.vendor.tax_id || '',
+      'เบอร์โทร': r.vendor.phone || '',
+    }));
+  if (vendorRows.length) {
+    window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(vendorRows), 'Vendor');
+  }
   window.XLSX.writeFile(wb, fname);
   showToast(`✅ Export "${fname}" สำเร็จ`, 'ok');
 }
