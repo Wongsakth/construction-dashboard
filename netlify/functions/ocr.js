@@ -21,16 +21,20 @@ exports.handler = async (event) => {
             }
           },
           {
-            text: `You are an OCR expert. Extract ALL text and data from this image/document.
-Return ONLY valid JSON, no markdown, no explanation, no code blocks.
-Format: {"rows": [{"column1": "value", "column2": "value"}], "raw": "all extracted text here"}
+            text: `You are an OCR expert for invoices and receipts.
+Extract ONLY the line items / products from this document.
+Ignore: company name, address, tax ID, customer info, dates, invoice numbers.
+
+Return ONLY valid JSON, no markdown, no explanation:
+{"rows": [{"ลำดับ": "1", "รายการ": "ชื่อสินค้า", "จำนวน": "21", "หน่วย": "คิว", "ราคา/หน่วย": "1800", "จำนวนเงิน": "37800"}], "raw": ""}
+
 Rules:
-- If it contains a table: use table headers as JSON keys, each row = one object in rows array
-- If it contains a list: use {"ลำดับ": "1", "ข้อมูล": "...", "หมายเหตุ": "..."}
-- If it contains key-value pairs: use {"หัวข้อ": "...", "ค่า": "..."}
-- Always fill "raw" with ALL visible text in the image
-- Support Thai and English text
-- Do NOT return empty strings, extract everything you see`
+- Each product/service line = one row
+- If quantity not found, leave empty string
+- If unit not found, leave empty string  
+- If price not found, leave empty string
+- Support Thai and English
+- Extract ALL line items visible`
           }
         ]
       }],
