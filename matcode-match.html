@@ -311,7 +311,12 @@ async function doMatch() {
   }
 
   RESULTS = items.map((item, i) => {
-    const candidates = findMatches(item.name, 5);
+    // รวม qty กลับเข้าชื่อถ้าดูเหมือน size (มีทศนิยม หรือน้อยกว่า 30)
+    const qtyNum = parseFloat((item.qty || '').replace(/,/g, ''));
+    const looksLikeSize = item.qty && !isNaN(qtyNum) && (String(item.qty).includes('.') || qtyNum <= 30);
+    const searchName = looksLikeSize ? `${item.name} ${item.qty}` : item.name;
+
+    const candidates = findMatches(searchName, 5);
     const best = candidates[0];
     const status = best.score >= threshold ? 'matched' : best.score >= 40 ? 'review' : 'none';
     return { ...item, candidates, selected: 0, status, idx: i };
