@@ -262,28 +262,44 @@ function parseOCR(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 3);
   const items = [];
   for (const line of lines) {
-    // Skip header-like lines
     if (/^(ใบส่ง|ใบยืม|เล่มที่|หจก\.|นาม|ที่อยู่|วันที่|จำนวน|ราคา|DESCRIPTION|UNIT|AMOUNT|════|────|📄|OCR Export)/i.test(line)) continue;
 
-    // Try to parse: ชื่อ | จำนวน | ราคา or ชื่อ จำนวน หน่วย ราคา
     const parts = line.split(/[|,\t]+/).map(p => p.trim());
     let name = '', qty = '', unit = '', price = '';
 
     if (parts.length >= 2) {
       name = parts[0];
-      // หาตัวเลขใน parts ที่เหลือ
       const nums = parts.slice(1).filter(p => /^\d+[\d,.]*(\.?\d+)?$/.test(p.replace(/,/g,'')));
       const texts = parts.slice(1).filter(p => !/^\d/.test(p) && p.length > 0);
       qty = nums[0] || '';
       price = nums[1] || '';
       unit = texts[0] || '';
     } else {
-      // Single line — extract numbers
       const numMatches = line.match(/(\d+[\d,.]*)/g) || [];
       const textPart = line.replace(/\d+[\d,.]*/g, '').replace(/\s+/g,' ').trim();
       name = textPart || line;
       qty = numMatches[0] || '';
       price = numMatches[1] || '';
+    }
+
+    // ถ้าชื่อสินค้าลงท้ายด้วยตัวเลข (size ติดกัน เช่น "เหล็กข้ออ้อย12")
+    // ให้คืน qty กลับเข้าชื่อ
+    const trailingNum = name.match(/(\d+\.?\d*)$/);
+    if (trailingNum) {
+      name = name; // ไม่ตัดออก เก็บไว้ในชื่อ
+      // ถ้า qty ดูเหมือน size ด้วย ให้รวมเข้าชื่อแทน
+    }
+
+    // ตัดเลขท้ายชื่อออกเป็น size แล้วรวมกลับ เพื่อให้ match ได้ถูก
+    // "เหล็กข้ออ้อย12" → name="เหล็กข้ออ้อย12", qty=""
+    // แต่ถ้า parts แยกแล้ว qty ดูเหมือน size → name = name + " " + qty, qty = ""
+    const qtyNum = parseFloat((qty || '').replace(/,/g, ''));
+    const looksLikeSize = qty && !isNaN(qtyNum) && (
+      String(qty).includes('.') || qtyNum <= 50
+    );
+    if (looksLikeSize) {
+      name = `${name} ${qty}`.trim();
+      qty = '';
     }
 
     if (name.length > 1) {
@@ -311,12 +327,7 @@ async function doMatch() {
   }
 
   RESULTS = items.map((item, i) => {
-    // รวม qty กลับเข้าชื่อถ้าดูเหมือน size (มีทศนิยม หรือน้อยกว่า 30)
-    const qtyNum = parseFloat((item.qty || '').replace(/,/g, ''));
-    const looksLikeSize = item.qty && !isNaN(qtyNum) && (String(item.qty).includes('.') || qtyNum <= 30);
-    const searchName = looksLikeSize ? `${item.name} ${item.qty}` : item.name;
-
-    const candidates = findMatches(searchName, 5);
+    const candidates = findMatches(item.name, 5);
     const best = candidates[0];
     const status = best.score >= threshold ? 'matched' : best.score >= 40 ? 'review' : 'none';
     return { ...item, candidates, selected: 0, status, idx: i };
