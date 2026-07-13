@@ -197,37 +197,49 @@ function normalize(str) {
     .replace(/\s+/g, ' ').trim();
 }
 
+// แยก token ทั้งภาษาไทยและอังกฤษออกจากกัน
+function tokenize(str) {
+  const n = normalize(str);
+  // แยก EN/TH ออกจากกัน เช่น "สายไฟthw" → ["สายไฟ", "thw"]
+  const parts = n.split(/(?<=[ก-๙])(?=[a-z0-9])|(?<=[a-z0-9])(?=[ก-๙])|\s+/);
+  return parts.filter(t => t.length > 0);
+}
+
 function scoreMatch(query, candidate) {
   const q = normalize(query);
   const c = normalize(candidate);
   if (!q || !c) return 0;
   if (c === q) return 100;
-  if (c.includes(q)) return 90;
-  if (q.includes(c)) return 85;
+  if (c.includes(q)) return 92;
+  if (q.includes(c)) return 88;
 
-  // Token match
-  const qTokens = q.split(' ').filter(t => t.length > 0);
-  const cTokens = c.split(' ').filter(t => t.length > 0);
+  const qTokens = tokenize(query);
+  const cTokens = tokenize(candidate);
+
+  // นับ token ที่ match
   let matched = 0;
+  let partialMatched = 0;
   for (const qt of qTokens) {
-    if (cTokens.some(ct => ct.includes(qt) || qt.includes(ct))) matched++;
+    const exactHit = cTokens.some(ct => ct === qt || ct.includes(qt) || qt.includes(ct));
+    const partialHit = cTokens.some(ct => ct.startsWith(qt) || qt.startsWith(ct));
+    if (exactHit) matched++;
+    else if (partialHit) partialMatched += 0.5;
   }
-  const tokenScore = qTokens.length > 0 ? (matched / qTokens.length) * 80 : 0;
 
-  // Partial char match
-  let charMatch = 0;
-  for (const ch of q) {
-    if (c.includes(ch)) charMatch++;
-  }
-  const charScore = q.length > 0 ? (charMatch / q.length) * 40 : 0;
+  const tokenScore = qTokens.length > 0
+    ? ((matched + partialMatched) / qTokens.length) * 85
+    : 0;
 
-  return Math.min(95, Math.max(tokenScore, charScore));
+  // bonus ถ้า group/subgroup match
+  const groupBonus = (candidate.toLowerCase().includes(q.split(' ')[0])) ? 5 : 0;
+
+  return Math.min(95, Math.round(tokenScore + groupBonus));
 }
 
-function findMatches(query, topN = 3) {
+function findMatches(query, topN = 5) {
   const scored = MATCODES.map(m => ({
     ...m,
-    score: Math.round(scoreMatch(query, m.n + ' ' + m.p + ' ' + m.s + ' ' + m.b))
+    score: Math.round(scoreMatch(query, `${m.n} ${m.p} ${m.s} ${m.b} ${m.g} ${m.sg}`))
   }));
   return scored.sort((a, b) => b.score - a.score).slice(0, topN);
 }
