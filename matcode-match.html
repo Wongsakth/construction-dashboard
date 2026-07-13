@@ -233,7 +233,20 @@ function scoreMatch(query, candidate) {
   // bonus ถ้า group/subgroup match
   const groupBonus = (candidate.toLowerCase().includes(q.split(' ')[0])) ? 5 : 0;
 
-  return Math.min(95, Math.round(tokenScore + groupBonus));
+  // ── Size number penalty/bonus ──
+  // ดึงตัวเลขจาก query เช่น "2.5" จาก "สายไฟthw 2.5"
+  const qNums = query.match(/\d+\.?\d*/g) || [];
+  const cNums = candidate.match(/\d+\.?\d*/g) || [];
+  let sizeBonus = 0;
+  if (qNums.length > 0) {
+    const allMatch = qNums.every(n => cNums.includes(n));
+    const anyMatch = qNums.some(n => cNums.includes(n));
+    if (allMatch) sizeBonus = 15;       // ตรงทุกตัว → bonus
+    else if (anyMatch) sizeBonus = 5;   // ตรงบางตัว → bonus นิดหน่อย
+    else if (cNums.length > 0) sizeBonus = -20; // มีตัวเลขใน candidate แต่ไม่ตรง → penalty
+  }
+
+  return Math.min(98, Math.max(0, Math.round(tokenScore + groupBonus + sizeBonus)));
 }
 
 function findMatches(query, topN = 5) {
